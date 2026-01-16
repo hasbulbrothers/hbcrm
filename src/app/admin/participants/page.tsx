@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -89,12 +89,10 @@ export default function ParticipantsPage() {
 
     useEffect(() => {
         loadSeminars()
-        // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
     }, [])
 
     useEffect(() => {
         loadData()
-        // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
     }, [page]) // Reload when page changes
 
     const handleSearch = (e: React.FormEvent) => {

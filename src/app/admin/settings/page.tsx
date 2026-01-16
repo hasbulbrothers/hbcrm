@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
-    sendPasswordResetEmail,
     updatePassword,
     getUsers,
     updateUserRole,
@@ -19,12 +18,6 @@ export default function SettingsPage() {
     const [currentUser, setCurrentUser] = useState<any>(null)
     const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-
-    // Password reset states
-    const [resetEmail, setResetEmail] = useState('')
-    const [resetMessage, setResetMessage] = useState('')
-    const [resetError, setResetError] = useState('')
-    const [resetLoading, setResetLoading] = useState(false)
 
     // Change password states
     const [oldPassword, setOldPassword] = useState('')
@@ -47,7 +40,6 @@ export default function SettingsPage() {
         const userRes = await getCurrentUser()
         if (userRes.success && userRes.user) {
             setCurrentUser(userRes.user)
-            setResetEmail(userRes.user.email || '')
 
             if (userRes.user.role === 'admin') {
                 const usersRes = await getUsers()
@@ -62,23 +54,7 @@ export default function SettingsPage() {
 
     useEffect(() => {
         loadData()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
-
-    async function handlePasswordReset(e: React.FormEvent) {
-        e.preventDefault()
-        setResetLoading(true)
-        setResetError('')
-        setResetMessage('')
-
-        const res = await sendPasswordResetEmail(resetEmail)
-        if (res.success) {
-            setResetMessage('Password reset link has been sent to your email.')
-        } else {
-            setResetError(res.error || 'Failed to send email')
-        }
-        setResetLoading(false)
-    }
 
     async function handleChangePassword(e: React.FormEvent) {
         e.preventDefault()

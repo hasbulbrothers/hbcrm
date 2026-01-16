@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -45,7 +45,6 @@ export default function RolesPage() {
 
     useEffect(() => {
         loadUsers()
-        // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
     }, [])
 
     async function handleCreateUser(e: React.FormEvent) {

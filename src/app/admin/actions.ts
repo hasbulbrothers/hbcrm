@@ -272,7 +272,6 @@ export async function getUsers() {
     }
 
     // Fetch user emails from auth.users
-    const userIds = data.map(u => u.user_id)
     const { data: authUsers } = await supabase.auth.admin.listUsers()
 
     const usersWithEmails = data.map(perm => {

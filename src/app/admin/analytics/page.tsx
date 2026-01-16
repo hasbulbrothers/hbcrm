@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Users, DollarSign, Gift, Save } from 'lucide-react'
+import { Users, DollarSign, Gift } from 'lucide-react'
 import { getSeminars, getSeminarAnalytics, getSeminarStats, updateSeminarStats } from '../actions'
 
 export default function AnalyticsPage() {
