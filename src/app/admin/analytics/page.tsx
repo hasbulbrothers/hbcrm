@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -21,10 +22,6 @@ export default function AnalyticsPage() {
     const [sponsorCount, setSponsorCount] = useState<number>(0)
     const [saving, setSaving] = useState(false)
 
-    useEffect(() => {
-        loadSeminars()
-    }, [])
-
     async function loadParticipantCounts(eventCode: string) {
         if (!eventCode) return
         const res = await getSeminarStats(eventCode)
@@ -37,13 +34,16 @@ export default function AnalyticsPage() {
         }
     }
 
-    async function handleSaveCounts() {
-        if (!selectedSeminar) return
-        setSaving(true)
-        await updateSeminarStats(selectedSeminar, paidCount, sponsorCount)
-        setSaving(false)
-        // Refresh stats to update rates
-        loadStats(selectedSeminar)
+    async function loadStats(eventCode: string) {
+        setStatsLoading(true)
+        setError('')
+        const res = await getSeminarAnalytics(eventCode)
+        if (res.success && res.stats) {
+            setStats(res.stats)
+        } else {
+            setError('Failed to load analytics')
+        }
+        setStatsLoading(false)
     }
 
     async function loadSeminars() {
@@ -68,16 +68,18 @@ export default function AnalyticsPage() {
         setLoading(false)
     }
 
-    async function loadStats(eventCode: string) {
-        setStatsLoading(true)
-        setError('')
-        const res = await getSeminarAnalytics(eventCode)
-        if (res.success && res.stats) {
-            setStats(res.stats)
-        } else {
-            setError('Failed to load analytics')
-        }
-        setStatsLoading(false)
+    useEffect(() => {
+        loadSeminars()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    async function handleSaveCounts() {
+        if (!selectedSeminar) return
+        setSaving(true)
+        await updateSeminarStats(selectedSeminar, paidCount, sponsorCount)
+        setSaving(false)
+        // Refresh stats to update rates
+        loadStats(selectedSeminar)
     }
 
     const handleSeminarChange = (eventCode: string) => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server'
 
 import { supabase } from '@/lib/supabaseClient'
@@ -153,8 +154,8 @@ export async function getSeminarAnalytics(eventCode: string) {
         const isPaid = tType.includes('general') || tType.includes('vip')
 
         // Check for specific day checkins
-        const day1Checkin = p.checkins?.some((c: any) => c.day === 1)
-        const day2Checkin = p.checkins?.some((c: any) => c.day === 2)
+        const day1Checkin = p.checkins?.some((c: { day: number }) => c.day === 1)
+        const day2Checkin = p.checkins?.some((c: { day: number }) => c.day === 2)
 
         if (day1Checkin) {
             if (isSponsor) day1Sponsor++

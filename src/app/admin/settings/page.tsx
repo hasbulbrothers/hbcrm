@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -40,10 +41,6 @@ export default function SettingsPage() {
     const [inviteError, setInviteError] = useState('')
     const [inviteLoading, setInviteLoading] = useState(false)
 
-    useEffect(() => {
-        loadData()
-    }, [])
-
     async function loadData() {
         setLoading(true)
 
@@ -62,6 +59,11 @@ export default function SettingsPage() {
 
         setLoading(false)
     }
+
+    useEffect(() => {
+        loadData()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     async function handlePasswordReset(e: React.FormEvent) {
         e.preventDefault()
