@@ -9,7 +9,7 @@ import { loginAdmin } from './actions'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
-    const [phone, setPhone] = useState('')
+    const [password, setPassword] = useState('')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const router = useRouter()
@@ -19,7 +19,7 @@ export default function LoginPage() {
         setLoading(true)
         setError('')
 
-        const res = await loginAdmin(email, phone)
+        const res = await loginAdmin(email, password)
 
         if (res.success) {
             router.push('/admin/dashboard')
@@ -49,19 +49,19 @@ export default function LoginPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <label htmlFor="phone" className="text-sm font-medium">No. Telefon</label>
+                            <label htmlFor="password" className="text-sm font-medium">Password</label>
                             <Input
-                                id="phone"
-                                type="tel"
-                                placeholder="Masukkan No. Telefon"
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
+                                id="password"
+                                type="password"
+                                placeholder="Masukkan Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
                         </div>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
                         <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? 'Verifying...' : 'Login'}
+                            {loading ? 'Logging in...' : 'Login'}
                         </Button>
                     </form>
                 </CardContent>

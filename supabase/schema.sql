@@ -7,7 +7,7 @@ create table participants (
   ticket_type text not null,
   niche text,
   state text,
-  total_sales numeric(10, 2), -- Using numeric for currency/sales
+  total_sales numeric(10, 2),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -30,14 +30,10 @@ create unique index idx_unique_checkin on checkins (event_code, day, participant
 alter table participants enable row level security;
 alter table checkins enable row level security;
 
--- Create policies (For now, allow public read/write if not using Auth, or restrict if Auth is ready)
--- Assuming service role use for import, but public might need read access for check-in search.
--- For MVP without Auth, we might open it up or use Anon key with logic.
-
 -- Policy: Allow anyone to read participants (for search)
 create policy "Enable read access for all users" on participants for select using (true);
--- Policy: Allow insert/update for service role only? Or public for now?
--- For check-in, we need to insert into checkins.
+
+-- Policy: Allow insert/update for checkins
 create policy "Enable insert for all users" on checkins for insert with check (true);
 create policy "Enable select for all users" on checkins for select using (true);
 
@@ -45,3 +41,12 @@ create policy "Enable select for all users" on checkins for select using (true);
 create index idx_participants_phone on participants (phone);
 create index idx_participants_name on participants (name);
 create index idx_participants_event_code on participants (event_code);
+
+-- =============================================
+-- ADMIN AUTHENTICATION (Using Supabase Auth)
+-- =============================================
+-- Admin users are managed via Supabase Authentication.
+-- To add an admin:
+-- 1. Go to Supabase Dashboard > Authentication > Users
+-- 2. Click "Add user" and enter email/password
+-- 3. The user can now login at /login

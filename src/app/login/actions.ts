@@ -1,33 +1,29 @@
 'use server'
 
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 
-import { supabase } from '@/lib/supabaseClient'
-
-export async function loginAdmin(email: string, phone: string) {
-    if (!email || !phone) {
-        return { success: false, error: 'Sila masukkan email dan no telefon.' }
+export async function loginAdmin(email: string, password: string) {
+    if (!email || !password) {
+        return { success: false, error: 'Sila masukkan email dan password.' }
     }
 
-    // Normalized phone check (optional: strip non-digits)
-    // For now, exact match
-    const { data, error } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', email)
-        .eq('phone', phone)
-        .single()
+    const supabase = await createClient()
 
-    if (data) {
-        // Set cookie
-        const cookieStore = await cookies()
-        cookieStore.set('admin_session', 'true', {
-            httpOnly: true,
-            path: '/',
-            maxAge: 60 * 60 * 24 // 1 day
-        })
-        return { success: true }
-    } else {
-        return { success: false, error: 'Maklumat tidak sah atau anda bukan admin.' }
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    })
+
+    if (error) {
+        return { success: false, error: 'Email atau password tidak sah.' }
     }
+
+    return { success: true }
+}
+
+export async function logoutAdmin() {
+    const supabase = await createClient()
+    await supabase.auth.signOut()
+    redirect('/login')
 }
