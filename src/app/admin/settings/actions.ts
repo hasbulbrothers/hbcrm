@@ -84,10 +84,27 @@ export async function sendPasswordResetEmail(email: string) {
     return { success: true }
 }
 
-// Update password (for logged in user)
-export async function updatePassword(newPassword: string) {
+// Update password (for logged in user - requires old password verification)
+export async function updatePassword(oldPassword: string, newPassword: string) {
     const supabase = await createClient()
 
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !user.email) {
+        return { success: false, error: 'Tidak log masuk' }
+    }
+
+    // Verify old password by trying to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPassword
+    })
+
+    if (signInError) {
+        return { success: false, error: 'Password lama tidak sah' }
+    }
+
+    // Update to new password
     const { error } = await supabase.auth.updateUser({
         password: newPassword
     })

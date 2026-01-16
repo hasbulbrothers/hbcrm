@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Filter, X } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -12,6 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { getParticipants } from './actions'
+import { getSeminars } from '../actions'
 
 // Editable Cell Component
 const EditableCell = ({ id, field, value, options, onUpdate }: { id: string, field: string, value: string, options: string[], onUpdate: (id: string, field: string, value: string) => void }) => {
@@ -52,6 +55,13 @@ export default function ParticipantsPage() {
     const [search, setSearch] = useState('')
     const [loading, setLoading] = useState(false)
 
+    // Filter states
+    const [showFilters, setShowFilters] = useState(false)
+    const [seminars, setSeminars] = useState<string[]>([])
+    const [selectedSeminar, setSelectedSeminar] = useState('')
+    const [startDate, setStartDate] = useState('')
+    const [endDate, setEndDate] = useState('')
+
     // Handle Update
     const handleUpdate = async (id: string, field: string, value: string) => {
         await updateParticipant(id, field, value)
@@ -61,13 +71,24 @@ export default function ParticipantsPage() {
 
     const loadData = async () => {
         setLoading(true)
-        const res = await getParticipants(page, 20, search)
+        const res = await getParticipants(page, 20, search, selectedSeminar, startDate, endDate)
         if (res.data) {
             setData(res.data)
             setCount(res.count || 0)
         }
         setLoading(false)
     }
+
+    const loadSeminars = async () => {
+        const res = await getSeminars()
+        if (res.success && res.events) {
+            setSeminars(res.events)
+        }
+    }
+
+    useEffect(() => {
+        loadSeminars()
+    }, [])
 
     useEffect(() => {
         loadData()
@@ -79,41 +100,109 @@ export default function ParticipantsPage() {
         loadData()
     }
 
+    const handleClearFilters = () => {
+        setSelectedSeminar('')
+        setStartDate('')
+        setEndDate('')
+        setSearch('')
+        setPage(1)
+    }
+
+    const hasActiveFilters = selectedSeminar || startDate || endDate || search
+
     return (
         <div className="p-8 space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Senarai Peserta</h1>
-                <div className="flex gap-2">
-                    <form onSubmit={handleSearch} className="flex gap-2">
-                        <Input
-                            placeholder="Cari nama/telefon..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-64"
-                        />
-                        <Button type="submit">Cari</Button>
-                    </form>
-                </div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Participants List</h1>
             </div>
+
+            <Card className="mb-6">
+                <CardContent className="p-4">
+                    <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
+                        <div className="flex-1 w-full">
+                            <label className="text-xs font-medium text-gray-500 mb-1 block">Search</label>
+                            <div className="relative">
+                                <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                                <Input
+                                    placeholder="Search name, phone..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="w-full md:w-[200px]">
+                            <label className="text-xs font-medium text-gray-500 mb-1 block">Seminar</label>
+                            <div className="relative">
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
+                                    value={selectedSeminar}
+                                    onChange={(e) => setSelectedSeminar(e.target.value)}
+                                >
+                                    <option value="">All Seminars</option>
+                                    {seminars.map(sem => (
+                                        <option key={sem} value={sem}>{sem}</option>
+                                    ))}
+                                </select>
+                                <svg className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                            </div>
+                        </div>
+
+                        <div className="w-full md:w-[160px]">
+                            <label className="text-xs font-medium text-gray-500 mb-1 block">From Date</label>
+                            <Input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="w-full md:w-[160px]">
+                            <label className="text-xs font-medium text-gray-500 mb-1 block">To Date</label>
+                            <Input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button type="submit">Apply</Button>
+                            {hasActiveFilters && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={handleClearFilters}
+                                    className="text-gray-500"
+                                >
+                                    Reset
+                                </Button>
+                            )}
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
 
             <div className="border rounded-md">
                 <Table>
                     <TableHeader>
                         <TableRow className="border-b border-gray-200">
-                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Nama</TableHead>
-                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Telefon</TableHead>
+                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Seminar</TableHead>
+                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Name</TableHead>
+                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Phone</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Email</TableHead>
-                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Tiket</TableHead>
+                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Ticket</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Day 1</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Day 2</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Niche</TableHead>
-                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Negeri</TableHead>
+                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">State</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Sales</TableHead>
-                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Tarikh Daftar</TableHead>
+                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Reg. Date</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">BDS Invited</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">BDS Status</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Close By</TableHead>
-                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Pakej</TableHead>
+                            <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Package</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Payment</TableHead>
                             <TableHead className="whitespace-nowrap border-r border-gray-200 px-4 py-3 bg-gray-50 font-semibold text-gray-700">Day</TableHead>
                             <TableHead className="whitespace-nowrap px-4 py-3 bg-gray-50 font-semibold text-gray-700">PIC</TableHead>
@@ -122,29 +211,30 @@ export default function ParticipantsPage() {
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={17} className="text-center h-24 border-r border-gray-200">Loading...</TableCell>
+                                <TableCell colSpan={18} className="text-center h-24 border-r border-gray-200">Loading...</TableCell>
                             </TableRow>
                         ) : data.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={17} className="text-center h-24 border-r border-gray-200">Tiada rekod.</TableCell>
+                                <TableCell colSpan={18} className="text-center h-24 border-r border-gray-200">No records found.</TableCell>
                             </TableRow>
                         ) : (
                             data.map((p) => {
                                 // Determine attendance from nested checkins data
-                                const day1 = p.checkins?.some((c: any) => c.day === 1) ? 'Hadir' : '-'
-                                const day2 = p.checkins?.some((c: any) => c.day === 2) ? 'Hadir' : '-'
+                                const day1 = p.checkins?.some((c: any) => c.day === 1) ? 'Present' : '-'
+                                const day2 = p.checkins?.some((c: any) => c.day === 2) ? 'Present' : '-'
 
                                 return (
                                     <TableRow key={p.id} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
+                                        <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3 text-blue-600 font-medium">{p.event_code || '-'}</TableCell>
                                         <TableCell className="font-medium whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.name}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.phone}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.email || '-'}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.ticket_type}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">
-                                            <span className={day1 === 'Hadir' ? 'text-green-600 font-bold' : 'text-gray-400'}>{day1}</span>
+                                            <span className={day1 === 'Present' ? 'text-green-600 font-bold' : 'text-gray-400'}>{day1}</span>
                                         </TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">
-                                            <span className={day2 === 'Hadir' ? 'text-green-600 font-bold' : 'text-gray-400'}>{day2}</span>
+                                            <span className={day2 === 'Present' ? 'text-green-600 font-bold' : 'text-gray-400'}>{day2}</span>
                                         </TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.niche || '-'}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.state || '-'}</TableCell>
@@ -244,6 +334,6 @@ export default function ParticipantsPage() {
                     </Button>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

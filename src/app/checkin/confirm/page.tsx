@@ -33,7 +33,7 @@ function ConfirmContent() {
             if (res.data) {
                 setParticipant(res.data)
             } else {
-                setError('Peserta tidak dijumpai.')
+                setError('Participant not found.')
             }
             setLoading(false)
         }
@@ -42,7 +42,7 @@ function ConfirmContent() {
 
     const handleSubmit = async () => {
         if (!isAttending) {
-            setError('Sila sahkan kehadiran anda.')
+            setError('Please confirm your attendance.')
             return
         }
         setSubmitting(true)
@@ -72,24 +72,24 @@ function ConfirmContent() {
             <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
                 <Card className="w-full max-w-md text-center bg-green-800 border-green-700">
                     <CardHeader>
-                        <CardTitle className="text-3xl font-bold text-white">✓ Tahniah!</CardTitle>
+                        <CardTitle className="text-3xl font-bold text-white">✓ Congratulations!</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <p className="text-xl text-green-100">Check-in Berjaya</p>
+                        <p className="text-xl text-green-100">Check-in Successful</p>
                         <div className="bg-green-700 p-4 rounded text-left text-white">
-                            <p><strong>Nama:</strong> {participant?.name}</p>
-                            <p><strong>Tiket:</strong> {participant?.ticket_type || 'General'}</p>
-                            <p><strong>Hari:</strong> Day {day}</p>
-                            <p><strong>Kehadiran:</strong> {attendCount} orang</p>
+                            <p><strong>Name:</strong> {participant?.name}</p>
+                            <p><strong>Ticket:</strong> {participant?.ticket_type || 'General'}</p>
+                            <p><strong>Day:</strong> Day {day}</p>
+                            <p><strong>Attendance:</strong> {attendCount} person(s)</p>
                         </div>
                         <div className="bg-yellow-500 p-4 rounded text-black">
-                            <p className="font-semibold text-lg">📖 Sila tuntut workbook anda di kaunter.</p>
+                            <p className="font-semibold text-lg">📖 Please collect your workbook at the counter.</p>
                         </div>
                         <Button
                             onClick={() => router.push(`/checkin?day=${day}&event=${eventCode}`)}
                             className="w-full mt-4 bg-white text-green-900 hover:bg-gray-100"
                         >
-                            Selesai
+                            Done
                         </Button>
                     </CardContent>
                 </Card>
@@ -104,7 +104,7 @@ function ConfirmContent() {
                     <div className="flex justify-center mb-4">
                         <Image src="/logo.png" alt="9X Growth Logo" width={150} height={80} className="object-contain" />
                     </div>
-                    <CardTitle className="text-center text-white">Sahkan Kehadiran</CardTitle>
+                    <CardTitle className="text-center text-white">Confirm Attendance</CardTitle>
                     <p className="text-center text-gray-400">Day {day}</p>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -113,11 +113,11 @@ function ConfirmContent() {
                         <p className="text-xl font-bold text-white">{participant?.name}</p>
                         <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                             <div>
-                                <p className="text-gray-400">Telefon</p>
+                                <p className="text-gray-400">Phone</p>
                                 <p className="text-white">{participant?.phone}</p>
                             </div>
                             <div>
-                                <p className="text-gray-400">Tiket</p>
+                                <p className="text-gray-400">Ticket</p>
                                 <p className="text-white">{participant?.ticket_type || 'General'}</p>
                             </div>
                             {participant?.email && (
@@ -134,7 +134,7 @@ function ConfirmContent() {
                             )}
                             {participant?.state && (
                                 <div>
-                                    <p className="text-gray-400">Negeri</p>
+                                    <p className="text-gray-400">State</p>
                                     <p className="text-white">{participant?.state}</p>
                                 </div>
                             )}
@@ -143,7 +143,7 @@ function ConfirmContent() {
 
                     {/* Attendance Toggle */}
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300">Kehadiran</label>
+                        <label className="text-sm font-medium text-gray-300">Attendance</label>
                         <div
                             onClick={() => setIsAttending(!isAttending)}
                             className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all ${isAttending
@@ -152,7 +152,7 @@ function ConfirmContent() {
                                 }`}
                         >
                             <span className="text-lg font-semibold text-white">
-                                {isAttending ? '✓ Saya Hadir' : 'Klik untuk sahkan kehadiran'}
+                                {isAttending ? '✓ I am Attending' : 'Click to confirm attendance'}
                             </span>
                             <div className={`w-14 h-8 rounded-full p-1 transition-all ${isAttending ? 'bg-green-400' : 'bg-zinc-600'}`}>
                                 <div className={`w-6 h-6 rounded-full bg-white transition-transform ${isAttending ? 'translate-x-6' : 'translate-x-0'}`}></div>
@@ -163,7 +163,7 @@ function ConfirmContent() {
                     {/* Attendance Count */}
                     {isAttending && (
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Bilangan Hadir</label>
+                            <label className="text-sm font-medium text-gray-300">Number of Attendees</label>
                             <div className="flex gap-3">
                                 {[1, 2, 3, 4, 5].map(num => (
                                     <Button
@@ -191,14 +191,14 @@ function ConfirmContent() {
                             className="w-1/3 border-zinc-600 text-gray-300 hover:bg-zinc-800 hover:text-white"
                             onClick={() => router.back()}
                         >
-                            Kembali
+                            Back
                         </Button>
                         <Button
                             className={`w-2/3 text-white ${isAttending ? 'bg-green-600 hover:bg-green-700' : 'bg-zinc-700 cursor-not-allowed'}`}
                             onClick={handleSubmit}
                             disabled={submitting || !isAttending}
                         >
-                            {submitting ? 'Proses...' : 'Sahkan Check-in'}
+                            {submitting ? 'Processing...' : 'Confirm Check-in'}
                         </Button>
                     </div>
                 </CardContent>

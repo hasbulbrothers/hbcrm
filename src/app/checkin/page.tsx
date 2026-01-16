@@ -69,24 +69,24 @@ function CheckInContent() {
                 <CardContent>
                     <form onSubmit={handleSearch} className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Cari Peserta (Nama / No Telefon)</label>
+                            <label className="text-sm font-medium text-gray-300">Search Participant (Name / Phone)</label>
                             <Input
-                                placeholder="Masukkan nama atau telefon..."
+                                placeholder="Enter name or phone..."
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500"
                             />
                         </div>
                         <Button type="submit" className="w-full h-12 text-lg bg-yellow-600 hover:bg-yellow-700 text-white" disabled={loading}>
-                            {loading ? 'Sedang Cari...' : 'Cari'}
+                            {loading ? 'Searching...' : 'Search'}
                         </Button>
                     </form>
 
-                    {error && <Alert variant="destructive" className="mt-4 bg-red-900 border-red-800 text-white"><AlertTitle>Ralat</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
+                    {error && <Alert variant="destructive" className="mt-4 bg-red-900 border-red-800 text-white"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
 
                     {participants.length > 0 && (
                         <div className="mt-6 space-y-3">
-                            <p className="font-semibold text-sm text-gray-400">Pilih Nama Anda:</p>
+                            <p className="font-semibold text-sm text-gray-400">Select Your Name:</p>
                             {participants.map((p) => (
                                 <div
                                     key={p.id}

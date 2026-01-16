@@ -26,12 +26,25 @@ create table checkins (
 -- Add unique constraint to prevent double check-in for the same day
 create unique index idx_unique_checkin on checkins (event_code, day, participant_id);
 
+-- Create seminars table to store seminar information
+create table seminars (
+  id uuid default gen_random_uuid() primary key,
+  event_code text not null unique,
+  name text not null,
+  description text,
+  start_date date,
+  end_date date,
+  location text,
+  status text default 'active' check (status in ('active', 'completed', 'cancelled')),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Create user_roles table for role-based access control
 create table user_roles (
   id uuid default gen_random_uuid() primary key,
   user_id uuid not null unique,
   email text not null,
-  role text not null default 'staff' check (role in ('admin', 'staff')),
+  role text not null default 'general' check (role in ('admin', 'general')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -39,7 +52,7 @@ create table user_roles (
 create table pending_invites (
   id uuid default gen_random_uuid() primary key,
   email text not null unique,
-  role text not null default 'staff' check (role in ('admin', 'staff')),
+  role text not null default 'general' check (role in ('admin', 'general')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -60,6 +73,7 @@ create policy "Enable select for all users" on checkins for select using (true);
 create policy "Enable read for authenticated" on user_roles for select to authenticated using (true);
 create policy "Enable insert for authenticated" on user_roles for insert to authenticated with check (true);
 create policy "Enable update for authenticated" on user_roles for update to authenticated using (true);
+create policy "Enable delete for authenticated" on user_roles for delete to authenticated using (true);
 
 -- Policy: Pending invites - authenticated users can manage
 create policy "Enable all for authenticated" on pending_invites for all to authenticated using (true);

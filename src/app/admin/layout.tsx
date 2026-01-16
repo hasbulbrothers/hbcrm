@@ -16,8 +16,11 @@ export default function AdminLayout({
                     <Link href="/admin/dashboard" className="block">
                         <Button variant="ghost" className="w-full justify-start">Dashboard</Button>
                     </Link>
+                    <Link href="/admin/analytics" className="block">
+                        <Button variant="ghost" className="w-full justify-start">Analytics</Button>
+                    </Link>
                     <Link href="/admin/participants" className="block">
-                        <Button variant="ghost" className="w-full justify-start">Peserta</Button>
+                        <Button variant="ghost" className="w-full justify-start">Participants</Button>
                     </Link>
                     <Link href="/admin/import" className="block">
                         <Button variant="ghost" className="w-full justify-start">Import CSV</Button>
@@ -25,8 +28,11 @@ export default function AdminLayout({
                     <Link href="/admin/settings" className="block">
                         <Button variant="ghost" className="w-full justify-start">Settings</Button>
                     </Link>
+                    <Link href="/admin/roles" className="block">
+                        <Button variant="ghost" className="w-full justify-start">Roles</Button>
+                    </Link>
                     <form action={logoutAdmin}>
-                        <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50">Log Keluar</Button>
+                        <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50">Logout</Button>
                     </form>
                 </nav>
             </aside>

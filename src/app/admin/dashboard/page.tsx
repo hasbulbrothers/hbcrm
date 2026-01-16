@@ -21,39 +21,10 @@ export default function AdminDashboard() {
         <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Kehadiran Day 1</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-5xl font-bold text-blue-600">{stats.day1}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Kehadiran Day 2</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-5xl font-bold text-green-600">{stats.day2}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total Sales (Hadir)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-5xl font-bold text-purple-600">
-                            {new Intl.NumberFormat('ms-MY', { style: 'currency', currency: 'MYR' }).format(stats.totalSales || 0)}
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Pecahan Mengikut Niche</CardTitle>
+                        <CardTitle>Breakdown by Niche</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
@@ -63,13 +34,13 @@ export default function AdminDashboard() {
                                     <span className="font-bold">{val}</span>
                                 </li>
                             ))}
-                            {Object.keys(stats.niche).length === 0 && <p className="text-gray-500">Tiada data</p>}
+                            {Object.keys(stats.niche).length === 0 && <p className="text-gray-500">No data</p>}
                         </ul>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Pecahan Mengikut Negeri</CardTitle>
+                        <CardTitle>Breakdown by State</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
@@ -79,7 +50,7 @@ export default function AdminDashboard() {
                                     <span className="font-bold">{val}</span>
                                 </li>
                             ))}
-                            {Object.keys(stats.state).length === 0 && <p className="text-gray-500">Tiada data</p>}
+                            {Object.keys(stats.state).length === 0 && <p className="text-gray-500">No data</p>}
                         </ul>
                     </CardContent>
                 </Card>
@@ -88,7 +59,7 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Pecahan Ikut Nilai Sales (RM)</CardTitle>
+                        <CardTitle>Breakdown by Sales Value (RM)</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
@@ -98,13 +69,13 @@ export default function AdminDashboard() {
                                     <span className="font-bold">{val}</span>
                                 </li>
                             ))}
-                            {(!stats.salesValue || Object.keys(stats.salesValue).length === 0) && <p className="text-gray-500">Tiada data</p>}
+                            {(!stats.salesValue || Object.keys(stats.salesValue).length === 0) && <p className="text-gray-500">No data</p>}
                         </ul>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Pecahan Ikut Jenis Tiket</CardTitle>
+                        <CardTitle>Breakdown by Ticket Type</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
@@ -114,7 +85,7 @@ export default function AdminDashboard() {
                                     <span className="font-bold">{val}</span>
                                 </li>
                             ))}
-                            {(!stats.ticketType || Object.keys(stats.ticketType).length === 0) && <p className="text-gray-500">Tiada data</p>}
+                            {(!stats.ticketType || Object.keys(stats.ticketType).length === 0) && <p className="text-gray-500">No data</p>}
                         </ul>
                     </CardContent>
                 </Card>

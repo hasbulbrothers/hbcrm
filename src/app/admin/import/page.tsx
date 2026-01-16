@@ -17,6 +17,61 @@ export default function ImportPage() {
         }
     }
 
+    const downloadTemplate = () => {
+        // CSV headers matching the expected format
+        const headers = [
+            'event_code',
+            'name',
+            'phone',
+            'email',
+            'niche',
+            'registration date',
+            'state',
+            'ticket type',
+            'total sales',
+            'attendance status',
+            'package',
+            'payment status',
+            'pic',
+            'bds invited',
+            'bds status',
+            'close by',
+            'day'
+        ].join(',')
+
+        // Example row
+        const exampleRow = [
+            '9xgrowth January',
+            'John Doe',
+            '60123456789',
+            'john@example.com',
+            'E-commerce',
+            '2026-01-01',
+            'Selangor',
+            'VIP',
+            '50000',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            ''
+        ].join(',')
+
+        const csvContent = `${headers}\n${exampleRow}`
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'participants_template.csv'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+    }
+
     const handleUpload = async () => {
         if (!file) return
         setStatus('Reading file...')
@@ -41,10 +96,12 @@ export default function ImportPage() {
                 'niche bisnes': 'niche',
                 'niche': 'niche',
                 'tarikh daftar': 'registration_date',
+                'registration date': 'registration_date',
                 'negeri': 'state',
                 'state': 'state',
                 'jenis tiket': 'ticket_type',
                 'ticket_type': 'ticket_type',
+                'ticket type': 'ticket_type',
                 'purata sales': 'total_sales',
                 'total sales': 'total_sales',
                 'total_sales': 'total_sales',
@@ -116,19 +173,24 @@ export default function ImportPage() {
 
     return (
         <div className="p-8 max-w-2xl">
-            <h1 className="text-2xl font-bold mb-6">Import Peserta (CSV)</h1>
+            <h1 className="text-2xl font-bold mb-6">Import Participants (CSV)</h1>
 
             <div className="space-y-4 bg-white p-6 rounded shadow">
                 <div>
                     <p className="mb-2 text-sm text-gray-600">
-                        Format CSV: <code className="bg-gray-100 p-1">nama, no telefon, email, niche, tarikh daftar, negeri, jenis tiket, purata sales, status hadir, pakej, status pembayaran, pic, bds invited, bds status, close by, day</code>
+                        CSV Format: <code className="bg-gray-100 p-1">event_code, name, phone, email, niche, registration date, state, ticket type, total sales, attendance status, package, payment status, pic, bds invited, bds status, close by, day</code>
                     </p>
                     <Input type="file" accept=".csv" onChange={handleFileChange} />
                 </div>
 
-                <Button onClick={handleUpload} disabled={!file || loading}>
-                    {loading ? 'Processing...' : 'Upload CSV'}
-                </Button>
+                <div className="flex gap-3">
+                    <Button onClick={handleUpload} disabled={!file || loading}>
+                        {loading ? 'Processing...' : 'Upload CSV'}
+                    </Button>
+                    <Button variant="outline" onClick={downloadTemplate}>
+                        Download Template
+                    </Button>
+                </div>
 
                 {status && (
                     <Alert className="mt-4">

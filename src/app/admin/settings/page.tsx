@@ -26,6 +26,7 @@ export default function SettingsPage() {
     const [resetLoading, setResetLoading] = useState(false)
 
     // Change password states
+    const [oldPassword, setOldPassword] = useState('')
     const [newPassword, setNewPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [passwordMessage, setPasswordMessage] = useState('')
@@ -70,9 +71,9 @@ export default function SettingsPage() {
 
         const res = await sendPasswordResetEmail(resetEmail)
         if (res.success) {
-            setResetMessage('Link reset password telah dihantar ke email anda.')
+            setResetMessage('Password reset link has been sent to your email.')
         } else {
-            setResetError(res.error || 'Gagal menghantar email')
+            setResetError(res.error || 'Failed to send email')
         }
         setResetLoading(false)
     }
@@ -83,25 +84,32 @@ export default function SettingsPage() {
         setPasswordError('')
         setPasswordMessage('')
 
+        if (!oldPassword) {
+            setPasswordError('Please enter your current password')
+            setPasswordLoading(false)
+            return
+        }
+
         if (newPassword !== confirmPassword) {
-            setPasswordError('Password tidak sama')
+            setPasswordError('Passwords do not match')
             setPasswordLoading(false)
             return
         }
 
         if (newPassword.length < 6) {
-            setPasswordError('Password mesti sekurang-kurangnya 6 aksara')
+            setPasswordError('Password must be at least 6 characters')
             setPasswordLoading(false)
             return
         }
 
-        const res = await updatePassword(newPassword)
+        const res = await updatePassword(oldPassword, newPassword)
         if (res.success) {
-            setPasswordMessage('Password berjaya ditukar!')
+            setPasswordMessage('Password changed successfully!')
+            setOldPassword('')
             setNewPassword('')
             setConfirmPassword('')
         } else {
-            setPasswordError(res.error || 'Gagal menukar password')
+            setPasswordError(res.error || 'Failed to change password')
         }
         setPasswordLoading(false)
     }
@@ -114,10 +122,10 @@ export default function SettingsPage() {
 
         const res = await inviteUser(inviteEmail, inviteRole)
         if (res.success) {
-            setInviteMessage(res.message || 'Jemputan berjaya dihantar!')
+            setInviteMessage(res.message || 'Invitation sent successfully!')
             setInviteEmail('')
         } else {
-            setInviteError(res.error || 'Gagal menghantar jemputan')
+            setInviteError(res.error || 'Failed to send invitation')
         }
         setInviteLoading(false)
     }
@@ -127,7 +135,7 @@ export default function SettingsPage() {
         if (res.success) {
             loadData() // Reload users
         } else {
-            alert(res.error || 'Gagal menukar role')
+            alert(res.error || 'Failed to change role')
         }
     }
 
@@ -142,25 +150,35 @@ export default function SettingsPage() {
             {/* Change Password Section */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Tukar Password</CardTitle>
+                    <CardTitle>Change Password</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Password Baru</label>
+                            <label className="text-sm font-medium">Current Password</label>
                             <Input
                                 type="password"
-                                placeholder="Masukkan password baru"
+                                placeholder="Enter current password"
+                                value={oldPassword}
+                                onChange={(e) => setOldPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">New Password</label>
+                            <Input
+                                type="password"
+                                placeholder="Enter new password"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 required
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Sahkan Password</label>
+                            <label className="text-sm font-medium">Confirm Password</label>
                             <Input
                                 type="password"
-                                placeholder="Masukkan semula password"
+                                placeholder="Re-enter new password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
@@ -177,41 +195,7 @@ export default function SettingsPage() {
                             </Alert>
                         )}
                         <Button type="submit" disabled={passwordLoading}>
-                            {passwordLoading ? 'Menukar...' : 'Tukar Password'}
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-
-            {/* Forgot Password Section */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Lupa Password</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handlePasswordReset} className="space-y-4 max-w-md">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Email</label>
-                            <Input
-                                type="email"
-                                placeholder="Masukkan email anda"
-                                value={resetEmail}
-                                onChange={(e) => setResetEmail(e.target.value)}
-                                required
-                            />
-                        </div>
-                        {resetError && (
-                            <Alert variant="destructive">
-                                <AlertDescription>{resetError}</AlertDescription>
-                            </Alert>
-                        )}
-                        {resetMessage && (
-                            <Alert>
-                                <AlertDescription className="text-green-600">{resetMessage}</AlertDescription>
-                            </Alert>
-                        )}
-                        <Button type="submit" disabled={resetLoading}>
-                            {resetLoading ? 'Menghantar...' : 'Hantar Link Reset'}
+                            {passwordLoading ? 'Changing...' : 'Change Password'}
                         </Button>
                     </form>
                 </CardContent>
@@ -223,7 +207,7 @@ export default function SettingsPage() {
                     {/* Invite New User */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Jemput Pengguna Baru</CardTitle>
+                            <CardTitle>Invite New User</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleInviteUser} className="space-y-4 max-w-md">
@@ -231,7 +215,7 @@ export default function SettingsPage() {
                                     <label className="text-sm font-medium">Email</label>
                                     <Input
                                         type="email"
-                                        placeholder="email@contoh.com"
+                                        placeholder="email@example.com"
                                         value={inviteEmail}
                                         onChange={(e) => setInviteEmail(e.target.value)}
                                         required
@@ -259,7 +243,7 @@ export default function SettingsPage() {
                                     </Alert>
                                 )}
                                 <Button type="submit" disabled={inviteLoading}>
-                                    {inviteLoading ? 'Menghantar...' : 'Hantar Jemputan'}
+                                    {inviteLoading ? 'Sending...' : 'Send Invitation'}
                                 </Button>
                             </form>
                         </CardContent>
@@ -268,11 +252,11 @@ export default function SettingsPage() {
                     {/* User List */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Senarai Pengguna</CardTitle>
+                            <CardTitle>User List</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {users.length === 0 ? (
-                                <p className="text-gray-500">Tiada pengguna dijumpai</p>
+                                <p className="text-gray-500">No users found</p>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full border-collapse">
@@ -280,7 +264,7 @@ export default function SettingsPage() {
                                             <tr className="border-b bg-gray-100">
                                                 <th className="text-left p-3">Email</th>
                                                 <th className="text-left p-3">Role</th>
-                                                <th className="text-left p-3">Tindakan</th>
+                                                <th className="text-left p-3">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -307,7 +291,7 @@ export default function SettingsPage() {
                                                             </select>
                                                         )}
                                                         {user.user_id === currentUser?.id && (
-                                                            <span className="text-gray-400 text-sm">Anda</span>
+                                                            <span className="text-gray-400 text-sm">You</span>
                                                         )}
                                                     </td>
                                                 </tr>
