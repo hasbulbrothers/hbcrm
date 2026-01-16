@@ -22,6 +22,9 @@ export default function AdminLayout({
                     <Link href="/admin/import" className="block">
                         <Button variant="ghost" className="w-full justify-start">Import CSV</Button>
                     </Link>
+                    <Link href="/admin/settings" className="block">
+                        <Button variant="ghost" className="w-full justify-start">Settings</Button>
+                    </Link>
                     <form action={logoutAdmin}>
                         <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50">Log Keluar</Button>
                     </form>
