@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Filter, X } from 'lucide-react'
+import { Filter } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -56,7 +56,7 @@ export default function ParticipantsPage() {
     const [loading, setLoading] = useState(false)
 
     // Filter states
-    const [showFilters, setShowFilters] = useState(false)
+
     const [seminars, setSeminars] = useState<string[]>([])
     const [selectedSeminar, setSelectedSeminar] = useState('')
     const [startDate, setStartDate] = useState('')

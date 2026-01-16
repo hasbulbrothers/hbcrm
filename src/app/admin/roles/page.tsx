@@ -33,10 +33,6 @@ export default function RolesPage() {
     const [newPassword, setNewPassword] = useState('')
     const [newRole, setNewRole] = useState('user')
 
-    useEffect(() => {
-        loadUsers()
-    }, [])
-
     async function loadUsers() {
         setLoading(true)
         const res = await getUsers()
@@ -45,6 +41,10 @@ export default function RolesPage() {
         }
         setLoading(false)
     }
+
+    useEffect(() => {
+        loadUsers()
+    }, [])
 
     async function handleCreateUser(e: React.FormEvent) {
         e.preventDefault()
