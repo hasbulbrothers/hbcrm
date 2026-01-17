@@ -58,7 +58,7 @@ function CheckInContent() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
-            <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white">
+            <Card className="w-full max-w-md bg-transparent border-none shadow-none md:bg-zinc-900 md:border-zinc-800 text-white">
                 <CardHeader>
                     <div className="flex justify-center mb-4">
                         <Image src="/logo.png" alt="9X Growth Logo" width={150} height={80} className="object-contain" />
@@ -77,7 +77,7 @@ function CheckInContent() {
                                 className="bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500"
                             />
                         </div>
-                        <Button type="submit" className="w-full h-12 text-lg bg-yellow-600 hover:bg-yellow-700 text-white" disabled={loading}>
+                        <Button type="submit" className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 text-white" disabled={loading}>
                             {loading ? 'Searching...' : 'Search'}
                         </Button>
                     </form>
@@ -91,7 +91,7 @@ function CheckInContent() {
                                 <div
                                     key={p.id}
                                     onClick={() => handleSelectParticipant(p)}
-                                    className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 cursor-pointer hover:bg-zinc-700 hover:border-yellow-600 transition-all"
+                                    className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 cursor-pointer hover:bg-zinc-700 hover:border-green-600 transition-all"
                                 >
                                     <p className="font-bold text-lg text-white">{p.name}</p>
                                     <div className="flex justify-between text-sm text-gray-400 mt-1">
