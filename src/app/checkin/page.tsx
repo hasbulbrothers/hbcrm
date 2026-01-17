@@ -58,7 +58,7 @@ function CheckInContent() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
-            <Card className="w-full max-w-md bg-transparent border-none shadow-none md:bg-zinc-900 md:border-zinc-800 text-white">
+            <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white">
                 <CardHeader>
                     <div className="flex justify-center mb-4">
                         <Image src="/logo.png" alt="9X Growth Logo" width={150} height={80} className="object-contain" />
