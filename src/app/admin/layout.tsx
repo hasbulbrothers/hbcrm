@@ -9,7 +9,7 @@ export default function AdminLayout({
 }: {
     children: React.ReactNode
 }) {
-    const NavContent = () => (
+    const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => (
         <nav className="space-y-2">
             <Link href="/admin/dashboard" className="block">
                 <Button variant="ghost" className="w-full justify-start">Dashboard</Button>
@@ -17,18 +17,25 @@ export default function AdminLayout({
             <Link href="/admin/analytics" className="block">
                 <Button variant="ghost" className="w-full justify-start">Analytics</Button>
             </Link>
-            <Link href="/admin/participants" className="block">
-                <Button variant="ghost" className="w-full justify-start">Participants</Button>
-            </Link>
-            <Link href="/admin/import" className="block">
-                <Button variant="ghost" className="w-full justify-start">Import CSV</Button>
-            </Link>
-            <Link href="/admin/settings" className="block">
-                <Button variant="ghost" className="w-full justify-start">Settings</Button>
-            </Link>
-            <Link href="/admin/roles" className="block">
-                <Button variant="ghost" className="w-full justify-start">Roles</Button>
-            </Link>
+
+            {/* Desktop Only Links */}
+            {!isMobile && (
+                <>
+                    <Link href="/admin/participants" className="block">
+                        <Button variant="ghost" className="w-full justify-start">Participants</Button>
+                    </Link>
+                    <Link href="/admin/import" className="block">
+                        <Button variant="ghost" className="w-full justify-start">Import CSV</Button>
+                    </Link>
+                    <Link href="/admin/settings" className="block">
+                        <Button variant="ghost" className="w-full justify-start">Settings</Button>
+                    </Link>
+                    <Link href="/admin/roles" className="block">
+                        <Button variant="ghost" className="w-full justify-start">Roles</Button>
+                    </Link>
+                </>
+            )}
+
             <form action={logoutAdmin}>
                 <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50">Logout</Button>
             </form>
@@ -40,7 +47,7 @@ export default function AdminLayout({
             {/* Desktop Sidebar */}
             <aside className="hidden md:block w-64 bg-white border-r p-6 space-y-4">
                 <h2 className="text-xl font-bold mb-6">9X Growth Admin</h2>
-                <NavContent />
+                <NavContent isMobile={false} />
             </aside>
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -58,7 +65,7 @@ export default function AdminLayout({
                                 <SheetTitle className="text-xl font-bold mb-6 text-left">Admin Menu</SheetTitle>
                             </SheetHeader>
                             <div className="mt-4">
-                                <NavContent />
+                                <NavContent isMobile={true} />
                             </div>
                         </SheetContent>
                     </Sheet>
