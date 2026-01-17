@@ -1,12 +1,23 @@
 'use server'
 
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
+
+// Create a Supabase client with the Service Role Key to bypass RLS
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export async function searchParticipant(query: string, eventCode: string) {
     // Normalize query (remove non-digits for phone, trim for name)
     const isPhone = /^\d+$/.test(query.replace(/\D/g, ''))
 
-    let dbQuery = supabase
+    // Check if Service Role Key is available
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        console.warn('SUPABASE_SERVICE_ROLE_KEY is missing. Search may fail due to RLS policies.')
+    }
+
+    let dbQuery = supabaseAdmin
         .from('participants')
         .select('*')
         .eq('event_code', eventCode)
