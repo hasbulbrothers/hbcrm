@@ -43,7 +43,7 @@ export async function searchParticipant(query: string, eventCode: string) {
 }
 
 export async function submitCheckIn(participantId: string, eventCode: string, day: number, attendCount: number) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('checkins')
         .insert({
             event_code: eventCode,
