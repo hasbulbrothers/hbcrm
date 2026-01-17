@@ -7,7 +7,7 @@ import Image from 'next/image'
 export default function Home() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-black text-white">
-      <Card className="w-full max-w-md text-center bg-zinc-900 border-zinc-800">
+      <Card className="w-full max-w-md text-center bg-transparent border-none shadow-none md:bg-zinc-900 md:border-zinc-800">
         <CardHeader>
           <div className="flex justify-center mb-4">
             <Image src="/logo.png" alt="9X Growth Logo" width={200} height={100} className="object-contain" />
