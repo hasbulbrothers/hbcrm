@@ -173,7 +173,7 @@ export default function ImportPage() {
     }
 
     return (
-        <div className="p-8 max-w-2xl">
+        <div className="max-w-2xl space-y-6">
             <h1 className="text-2xl font-bold mb-6">Import Participants (CSV)</h1>
 
             <div className="space-y-4 bg-white p-6 rounded shadow">

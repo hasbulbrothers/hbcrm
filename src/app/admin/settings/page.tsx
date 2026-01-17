@@ -122,7 +122,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
+        <div className="space-y-8">
             <h1 className="text-3xl font-bold">Settings</h1>
 
             {/* Change Password Section */}

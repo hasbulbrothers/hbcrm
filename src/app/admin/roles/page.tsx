@@ -105,7 +105,7 @@ export default function RolesPage() {
     if (loading) return <div className="p-8">Loading...</div>
 
     return (
-        <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
+        <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold">Role Management</h1>

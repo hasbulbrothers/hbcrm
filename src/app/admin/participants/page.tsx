@@ -112,7 +112,7 @@ export default function ParticipantsPage() {
     const hasActiveFilters = selectedSeminar || startDate || endDate || search
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Participants List</h1>
             </div>
@@ -185,7 +185,7 @@ export default function ParticipantsPage() {
                 </CardContent>
             </Card>
 
-            <div className="border rounded-md">
+            <div className="border rounded-md overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow className="border-b border-gray-200">

@@ -93,7 +93,7 @@ export default function AnalyticsPage() {
     }
 
     return (
-        <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
+        <div className="space-y-8">
             <div className="flex justify-between items-center flex-wrap gap-4">
                 <h1 className="text-3xl font-bold">Seminar Analytics</h1>
 
