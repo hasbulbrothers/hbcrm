@@ -17,7 +17,7 @@ export default function Home() {
         </CardHeader>
         <CardContent className="space-y-4">
           <Link href="/checkin" className="block">
-            <Button className="w-full h-12 text-lg bg-yellow-600 hover:bg-yellow-700 text-white font-bold">Check-In Peserta</Button>
+            <Button className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 text-white font-bold">Check-In Peserta</Button>
           </Link>
         </CardContent>
       </Card>
