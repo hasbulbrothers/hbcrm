@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense, useEffect } from 'react'
+import { useState, Suspense, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { searchParticipant } from '../actions'
 
+interface Participant {
+    id: string
+    name: string
+    phone: string
+    email?: string
+    ticket_type?: string
+}
+
 function CheckInContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -16,42 +24,46 @@ function CheckInContent() {
     const day = parseInt(searchParams.get('day') || '1')
 
     const [query, setQuery] = useState('')
-    const [participants, setParticipants] = useState<any[]>([])
+    const [participants, setParticipants] = useState<Participant[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
-    const handleSearch = async (e?: React.FormEvent, SearchQuery?: string) => {
-        if (e) e.preventDefault()
-        const finalQuery = SearchQuery || query
-        if (!finalQuery) return
+    const handleSearch = useCallback(async (searchQuery: string) => {
+        if (!searchQuery) return
 
         setLoading(true)
         setError('')
         setParticipants([])
 
-        const res = await searchParticipant(finalQuery, eventCode)
+        const res = await searchParticipant(searchQuery, eventCode)
 
         if (res.error) {
             setError(res.error)
         } else if (res.data) {
-            setParticipants(res.data)
+            setParticipants(res.data as Participant[])
         }
         setLoading(false)
-    }
+    }, [eventCode])
 
-    // Auto-search effect
+    // Auto-search effect - using debounce pattern that avoids direct setState in effect body
     useEffect(() => {
-        if (query.length >= 8) {
-            const timer = setTimeout(() => {
-                handleSearch(undefined, query)
-            }, 500)
-            return () => clearTimeout(timer)
-        } else {
-            setParticipants([])
+        // Reset participants when query becomes too short
+        if (query.length < 8) {
+            if (participants.length > 0) {
+                // Use functional update to avoid triggering re-render loop
+                setParticipants(prev => prev.length > 0 ? [] : prev)
+            }
+            return
         }
-    }, [query])
 
-    const handleSelectParticipant = (participant: any) => {
+        const timer = setTimeout(() => {
+            handleSearch(query)
+        }, 500)
+        return () => clearTimeout(timer)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [query, handleSearch])
+
+    const handleSelectParticipant = (participant: Participant) => {
         // Navigate to confirm page with participant ID
         router.push(`/checkin/confirm?id=${participant.id}&day=${day}&event=${eventCode}`)
     }
@@ -67,7 +79,7 @@ function CheckInContent() {
                     <p className="text-center text-gray-400">Day {day} | Code: {eventCode}</p>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSearch} className="space-y-4">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSearch(query) }} className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-300">Search Participant (Name / Phone)</label>
                             <Input

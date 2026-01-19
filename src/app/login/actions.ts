@@ -1,29 +1,25 @@
+
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/utils/supabase/server'
 
-export async function loginAdmin(email: string, password: string) {
-    if (!email || !password) {
-        return { success: false, error: 'Sila masukkan email dan password.' }
-    }
-
+export async function login(formData: FormData) {
     const supabase = await createClient()
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
     })
 
     if (error) {
-        return { success: false, error: 'Email atau password tidak sah.' }
+        return { error: 'Invalid email or password' }
     }
 
-    return { success: true }
-}
-
-export async function logoutAdmin() {
-    const supabase = await createClient()
-    await supabase.auth.signOut()
-    redirect('/login')
+    revalidatePath('/', 'layout')
+    redirect('/admin/dashboard')
 }

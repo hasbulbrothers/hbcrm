@@ -1,12 +1,22 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getParticipantById } from './actions'
 import { submitCheckIn } from '../../actions'
+
+interface Participant {
+    id: string
+    name: string
+    phone: string
+    email?: string
+    ticket_type?: string
+    niche?: string
+    state?: string
+}
 
 function ConfirmContent() {
     const searchParams = useSearchParams()
@@ -15,7 +25,7 @@ function ConfirmContent() {
     const day = parseInt(searchParams.get('day') || '1')
     const eventCode = searchParams.get('event') || 'default-event'
 
-    const [participant, setParticipant] = useState<any>(null)
+    const [participant, setParticipant] = useState<Participant | null>(null)
     const [loading, setLoading] = useState(true)
     const [isAttending, setIsAttending] = useState(false)
     const [attendCount, setAttendCount] = useState(1)
@@ -23,22 +33,24 @@ function ConfirmContent() {
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState('')
 
-    useEffect(() => {
-        const fetchParticipant = async () => {
-            if (!participantId) {
-                router.push('/checkin')
-                return
-            }
-            const res = await getParticipantById(participantId)
-            if (res.data) {
-                setParticipant(res.data)
-            } else {
-                setError('Participant not found.')
-            }
-            setLoading(false)
+    const fetchParticipant = useCallback(async () => {
+        if (!participantId) {
+            router.push('/checkin')
+            return
         }
+        const res = await getParticipantById(participantId)
+        if (res.data) {
+            setParticipant(res.data as Participant)
+        } else {
+            setError('Participant not found.')
+        }
+        setLoading(false)
+    }, [participantId, router])
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchParticipant()
-    }, [participantId])
+    }, [fetchParticipant])
 
     const handleSubmit = async () => {
         if (!isAttending) {

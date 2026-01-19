@@ -1,15 +1,11 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { logoutAdmin } from './logout-action'
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Menu } from 'lucide-react'
 
-export default function AdminLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
-    const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+// Moved outside the component to prevent recreation on each render
+function NavContent({ isMobile = false }: { isMobile?: boolean }) {
+    return (
         <nav className="space-y-2">
             <Link href="/admin/dashboard" className="block">
                 <Button variant="ghost" className="w-full justify-start">Dashboard</Button>
@@ -35,13 +31,15 @@ export default function AdminLayout({
                     </Link>
                 </>
             )}
-
-            <form action={logoutAdmin}>
-                <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50">Logout</Button>
-            </form>
         </nav>
     )
+}
 
+export default function AdminLayout({
+    children,
+}: {
+    children: React.ReactNode
+}) {
     return (
         <div className="flex h-screen bg-gray-100">
             {/* Desktop Sidebar */}

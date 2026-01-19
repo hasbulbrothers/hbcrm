@@ -20,7 +20,7 @@ export async function searchParticipant(query: string, eventCode: string) {
     let dbQuery = supabaseAdmin
         .from('participants')
         .select('*')
-        .eq('event_code', eventCode)
+        .ilike('event_code', eventCode)
 
     if (isPhone) {
         // Basic normalization: remove non-digits
@@ -42,11 +42,22 @@ export async function searchParticipant(query: string, eventCode: string) {
     return { data }
 }
 
-export async function submitCheckIn(participantId: string, eventCode: string, day: number, attendCount: number) {
+export async function submitCheckIn(participantId: string, ignoredEventCode: string, day: number, attendCount: number) {
+    // 1. Fetch the correct event_code from the participant to ensure consistency
+    const { data: participant, error: pError } = await supabaseAdmin
+        .from('participants')
+        .select('event_code')
+        .eq('id', participantId)
+        .single()
+
+    if (pError || !participant) {
+        return { error: 'Participant not found.' }
+    }
+
     const { data, error } = await supabaseAdmin
         .from('checkins')
         .insert({
-            event_code: eventCode,
+            event_code: participant.event_code, // Use the DB source of truth
             day: day,
             participant_id: participantId,
             attend_count: attendCount,
