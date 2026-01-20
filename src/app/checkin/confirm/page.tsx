@@ -131,6 +131,7 @@ function ConfirmContent() {
                         <p className={`text-xl ${isSponsor ? 'text-white' : 'text-green-100'}`}>Check-in Successful</p>
                         <div className={`${isSponsor ? 'bg-zinc-800' : 'bg-green-700'} p-4 rounded text-left text-white`}>
                             <p><strong>Name:</strong> {participant?.name}</p>
+                            <p><strong>Tiket:</strong> {participant?.ticket_type || 'General'}</p>
                             <p><strong>Day:</strong> Day {day}</p>
 
                             {/* Attendance Breakdown */}
