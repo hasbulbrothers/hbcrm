@@ -98,19 +98,19 @@ export async function getSeminarAnalytics(eventCode: string) {
         .select('*', { count: 'exact', head: true })
         .eq('event_code', eventCode)
 
-    // Day 1 Check-ins
-    const { count: day1Count } = await supabase
+    // Get all check-ins with attend_count for day totals
+    const { data: allCheckins } = await supabase
         .from('checkins')
-        .select('*', { count: 'exact', head: true })
+        .select('day, attend_count, participant_id')
         .eq('event_code', eventCode)
-        .eq('day', 1)
 
-    // Day 2 Check-ins
-    const { count: day2Count } = await supabase
-        .from('checkins')
-        .select('*', { count: 'exact', head: true })
-        .eq('event_code', eventCode)
-        .eq('day', 2)
+    // Calculate day totals from attend_count
+    let day1Total = 0
+    let day2Total = 0
+    allCheckins?.forEach((c: { day: number; attend_count: number }) => {
+        if (c.day === 1) day1Total += c.attend_count || 1
+        if (c.day === 2) day2Total += c.attend_count || 1
+    })
 
     // Get all participants with checkins for this event
     const { data: participants } = await supabase
@@ -126,7 +126,7 @@ export async function getSeminarAnalytics(eventCode: string) {
             package,
             payment_status,
             bds_status,
-            checkins (day)
+            checkins (day, attend_count)
         `)
         .eq('event_code', eventCode)
 
@@ -141,7 +141,7 @@ export async function getSeminarAnalytics(eventCode: string) {
     let totalSales = 0
     let attendedCount = 0
 
-    // Attendance breakdown counters
+    // Attendance breakdown counters (now sum of attend_count)
     let day1Paid = 0
     let day1Sponsor = 0
     let day2Paid = 0
@@ -151,20 +151,22 @@ export async function getSeminarAnalytics(eventCode: string) {
         const hasCheckin = p.checkins && p.checkins.length > 0
         const tType = p.ticket_type?.toLowerCase() || ''
         const isSponsor = tType.includes('sponsor')
-        const isPaid = tType.includes('general') || tType.includes('vip')
+        const isPaid = !isSponsor // All non-sponsor tickets are considered "paid"
 
-        // Check for specific day checkins
-        const day1Checkin = p.checkins?.some((c: { day: number }) => c.day === 1)
-        const day2Checkin = p.checkins?.some((c: { day: number }) => c.day === 2)
+        // Check for specific day checkins and sum attend_count
+        const day1Checkin = p.checkins?.find((c: { day: number; attend_count: number }) => c.day === 1)
+        const day2Checkin = p.checkins?.find((c: { day: number; attend_count: number }) => c.day === 2)
 
         if (day1Checkin) {
-            if (isSponsor) day1Sponsor++
-            else if (isPaid) day1Paid++
+            const count = day1Checkin.attend_count || 1
+            if (isSponsor) day1Sponsor += count
+            else if (isPaid) day1Paid += count
         }
 
         if (day2Checkin) {
-            if (isSponsor) day2Sponsor++
-            else if (isPaid) day2Paid++
+            const count = day2Checkin.attend_count || 1
+            if (isSponsor) day2Sponsor += count
+            else if (isPaid) day2Paid += count
         }
 
         if (hasCheckin) {
@@ -190,8 +192,8 @@ export async function getSeminarAnalytics(eventCode: string) {
         success: true,
         stats: {
             totalParticipants: totalParticipants || 0,
-            day1Attendance: day1Count || 0,
-            day2Attendance: day2Count || 0,
+            day1Attendance: day1Total, // Now uses sum of attend_count
+            day2Attendance: day2Total, // Now uses sum of attend_count
             attendedCount,
             attendanceRate,
             totalSales,

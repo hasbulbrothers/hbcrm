@@ -9,12 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { searchParticipant } from '../actions'
 
+interface CheckIn {
+    day: number
+    attend_count: number
+    status: string
+}
+
 interface Participant {
     id: string
     name: string
     phone: string
     email?: string
     ticket_type?: string
+    checkins?: CheckIn[]
 }
 
 function CheckInContent() {
@@ -99,20 +106,51 @@ function CheckInContent() {
                     {participants.length > 0 && (
                         <div className="mt-6 space-y-3">
                             <p className="font-semibold text-sm text-gray-400">Select Your Name:</p>
-                            {participants.map((p) => (
-                                <div
-                                    key={p.id}
-                                    onClick={() => handleSelectParticipant(p)}
-                                    className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 cursor-pointer hover:bg-zinc-700 hover:border-green-600 transition-all"
-                                >
-                                    <p className="font-bold text-lg text-white">{p.name}</p>
-                                    <div className="flex justify-between text-sm text-gray-400 mt-1">
-                                        <span>{p.ticket_type || 'General'}</span>
-                                        <span>{p.phone}</span>
+                            {participants.map((p) => {
+                                // Check attendance for current day
+                                const todayCheckin = p.checkins?.find(c => c.day === day)
+                                const isCheckedIn = !!todayCheckin
+                                const attendCount = todayCheckin?.attend_count || 0
+
+                                return (
+                                    <div
+                                        key={p.id}
+                                        onClick={() => handleSelectParticipant(p)}
+                                        className={`bg-zinc-800 border rounded-lg p-4 cursor-pointer transition-all ${isCheckedIn
+                                            ? 'border-green-600 bg-zinc-800/80 hover:bg-zinc-700'
+                                            : 'border-zinc-700 hover:bg-zinc-700 hover:border-green-600'
+                                            }`}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <p className="font-bold text-lg text-white">{p.name}</p>
+                                                <div className="text-sm text-gray-400 mt-1 space-y-1">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {(p.ticket_type || 'General').split(/(?=\d+\.\s)/).filter(Boolean).map((item, idx) => (
+                                                            <span key={idx} className="block">{item.trim()}</span>
+                                                        ))}
+                                                    </div>
+                                                    <p>{p.phone}</p>
+                                                </div>
+                                                {p.email && <p className="text-xs text-gray-500 mt-1">{p.email}</p>}
+                                            </div>
+
+                                            {/* Attendance Status Badge */}
+                                            <div className="flex flex-col items-end gap-2">
+                                                {isCheckedIn ? (
+                                                    <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                                                        ✓ Hadir ({attendCount} orang)
+                                                    </span>
+                                                ) : (
+                                                    <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded-full">
+                                                        Belum Hadir
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    {p.email && <p className="text-xs text-gray-500 mt-1">{p.email}</p>}
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
                 </CardContent>

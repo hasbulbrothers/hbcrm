@@ -83,43 +83,138 @@ export default function ImportPage() {
             const text = e.target?.result
             if (typeof text !== 'string') return
 
-            // Simple CSV Parse
-            const lines = text.split('\n')
-            const rawHeaders = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''))
+            // Proper CSV Parser that handles multi-line cells in quotes
+            const parseCSV = (csvText: string): string[][] => {
+                const result: string[][] = []
+                let currentRow: string[] = []
+                let currentCell = ''
+                let insideQuotes = false
 
-            // Mapping Logic
+                for (let i = 0; i < csvText.length; i++) {
+                    const char = csvText[i]
+                    const nextChar = csvText[i + 1]
+
+                    if (char === '"') {
+                        if (insideQuotes && nextChar === '"') {
+                            // Escaped quote
+                            currentCell += '"'
+                            i++ // Skip the next quote
+                        } else {
+                            // Toggle quote state
+                            insideQuotes = !insideQuotes
+                        }
+                    } else if (char === ',' && !insideQuotes) {
+                        // End of cell
+                        currentRow.push(currentCell.trim())
+                        currentCell = ''
+                    } else if ((char === '\n' || (char === '\r' && nextChar === '\n')) && !insideQuotes) {
+                        // End of row
+                        if (char === '\r') i++ // Skip \n after \r
+                        currentRow.push(currentCell.trim())
+                        if (currentRow.some(cell => cell !== '')) {
+                            result.push(currentRow)
+                        }
+                        currentRow = []
+                        currentCell = ''
+                    } else if (char === '\r' && !insideQuotes) {
+                        // Handle standalone \r
+                        currentRow.push(currentCell.trim())
+                        if (currentRow.some(cell => cell !== '')) {
+                            result.push(currentRow)
+                        }
+                        currentRow = []
+                        currentCell = ''
+                    } else {
+                        currentCell += char
+                    }
+                }
+
+                // Don't forget the last cell/row
+                if (currentCell || currentRow.length > 0) {
+                    currentRow.push(currentCell.trim())
+                    if (currentRow.some(cell => cell !== '')) {
+                        result.push(currentRow)
+                    }
+                }
+
+                return result
+            }
+
+            const parsedRows = parseCSV(text)
+            if (parsedRows.length === 0) {
+                setStatus('Error: CSV file is empty')
+                setLoading(false)
+                return
+            }
+
+            const rawHeaders = parsedRows[0].map(h => h.toLowerCase().replace(/"/g, ''))
+
+            // Mapping Logic - supports both English and Malay headers
             const headerMap: Record<string, string> = {
+                // Event/Seminar
+                'event_code': 'event_code',
+                'event code': 'event_code',
+                'eventcode': 'event_code',
+                'seminar': 'event_code',
+                'nama seminar': 'event_code',
+                'event': 'event_code',
+                // Name
                 'nama': 'name',
                 'name': 'name',
+                'nama penuh': 'name',
+                'full name': 'name',
+                // Phone
                 'no telefon': 'phone',
                 'phone': 'phone',
+                'telefon': 'phone',
+                'no hp': 'phone',
+                'no. telefon': 'phone',
+                'mobile': 'phone',
+                // Email
                 'email': 'email',
+                'emel': 'email',
+                // Niche
                 'niche bisnes': 'niche',
                 'niche': 'niche',
+                'bisnes': 'niche',
+                'business': 'niche',
+                // Registration Date
                 'tarikh daftar': 'registration_date',
                 'registration date': 'registration_date',
+                'registration_date': 'registration_date',
+                'tarikh': 'registration_date',
+                'date': 'registration_date',
+                // State
                 'negeri': 'state',
                 'state': 'state',
+                // Ticket Type
                 'jenis tiket': 'ticket_type',
                 'ticket_type': 'ticket_type',
                 'ticket type': 'ticket_type',
+                'tiket': 'ticket_type',
+                'ticket': 'ticket_type',
+                'type': 'ticket_type',
+                // Total Sales
                 'purata sales': 'total_sales',
                 'total sales': 'total_sales',
                 'total_sales': 'total_sales',
-                'event_code': 'event_code',
+                'sales': 'total_sales',
+                'jualan': 'total_sales',
                 // CRM Fields
                 'status hadir': 'status_hadir',
                 'attendance status': 'status_hadir',
+                'attendance': 'status_hadir',
                 'pakej': 'package',
                 'package': 'package',
                 'status pembayaran': 'payment_status',
                 'payment status': 'payment_status',
+                'payment': 'payment_status',
                 'pic': 'pic',
                 'person in charge': 'pic',
                 // BDS Fields
                 'bds invited': 'bds_invited',
                 'bds status': 'bds_status',
-                // New Close Fields
+                // Close Fields
                 'close by': 'close_by',
                 'closed by': 'close_by',
                 'day': 'close_day',
@@ -127,22 +222,29 @@ export default function ImportPage() {
             }
 
             const rows = []
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim()
-                if (!line) continue
-
-                // Better CSV split that handles quotes loosely (simple regex for MVP)
-                // Assuming no commas inside fields for now or standard CSV
-                const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''))
+            // Start from index 1 to skip header row
+            for (let i = 1; i < parsedRows.length; i++) {
+                const values = parsedRows[i]
+                if (!values || values.length === 0) continue
 
                 const row: any = {}
                 let hasData = false
 
+                // Fields that should be null instead of empty string
+                const nullableFields = ['registration_date', 'total_sales', 'created_at']
+
                 rawHeaders.forEach((h, index) => {
                     const dbField = headerMap[h] || h // Fallback to header name if no map
                     if (dbField) {
-                        row[dbField] = values[index] || ''
-                        if (values[index]) hasData = true
+                        const value = values[index]?.trim()
+                        // Set null for empty nullable fields, empty string for others
+                        if (!value || value === '') {
+                            row[dbField] = nullableFields.includes(dbField) ? null : ''
+                        } else {
+                            // Replace line breaks within cell with space for cleaner data
+                            row[dbField] = value.replace(/[\r\n]+/g, ' ')
+                        }
+                        if (value) hasData = true
                     }
                 })
 

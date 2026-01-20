@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-export async function searchParticipant(query: string, eventCode: string) {
+export async function searchParticipant(query: string, eventCode: string, day?: number) {
     // Normalize query (remove non-digits for phone, trim for name)
     const isPhone = /^\d+$/.test(query.replace(/\D/g, ''))
 
@@ -19,7 +19,7 @@ export async function searchParticipant(query: string, eventCode: string) {
 
     let dbQuery = supabaseAdmin
         .from('participants')
-        .select('*')
+        .select('*, checkins(day, attend_count, status)')
         .ilike('event_code', eventCode)
 
     if (isPhone) {
@@ -71,6 +71,24 @@ export async function submitCheckIn(participantId: string, ignoredEventCode: str
         if (error.code === '23505') { // unique violation
             return { error: 'Already checked in for today.' }
         }
+        return { error: error.message }
+    }
+
+    return { success: true, data }
+}
+
+// Update attendance count for existing check-in
+export async function updateCheckIn(participantId: string, day: number, attendCount: number) {
+    const { data, error } = await supabaseAdmin
+        .from('checkins')
+        .update({ attend_count: attendCount })
+        .eq('participant_id', participantId)
+        .eq('day', day)
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Update Error:', error)
         return { error: error.message }
     }
 

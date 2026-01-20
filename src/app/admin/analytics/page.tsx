@@ -8,6 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users, DollarSign, Gift } from 'lucide-react'
 import { getSeminars, getSeminarAnalytics, getSeminarStats, updateSeminarStats } from '../actions'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+
+// Color palette for charts
+const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#84CC16', '#6366F1', '#F97316']
 
 export default function AnalyticsPage() {
     const [seminars, setSeminars] = useState<string[]>([])
@@ -202,21 +206,21 @@ export default function AnalyticsPage() {
                                     <p className="text-xs text-gray-500 uppercase font-semibold">Paid</p>
                                     <p className="text-2xl font-bold text-blue-600">{stats.day1Paid}</p>
                                     <p className="text-xs text-gray-400">
-                                        {paidCount ? Math.round((stats.day1Paid / paidCount) * 100) : 0}%
+                                        {paidCount ? ((stats.day1Paid / paidCount) * 100).toFixed(1) : '0.0'}%
                                     </p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs text-gray-500 uppercase font-semibold">Sponsor</p>
                                     <p className="text-2xl font-bold text-purple-600">{stats.day1Sponsor}</p>
                                     <p className="text-xs text-gray-400">
-                                        {sponsorCount ? Math.round((stats.day1Sponsor / sponsorCount) * 100) : 0}%
+                                        {sponsorCount ? ((stats.day1Sponsor / sponsorCount) * 100).toFixed(1) : '0.0'}%
                                     </p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs text-gray-500 uppercase font-semibold">All</p>
                                     <p className="text-2xl font-bold text-gray-900">{stats.day1Attendance}</p>
                                     <p className="text-xs text-gray-400">
-                                        {(paidCount + sponsorCount) ? Math.round((stats.day1Attendance / (paidCount + sponsorCount)) * 100) : 0}%
+                                        {(paidCount + sponsorCount) ? ((stats.day1Attendance / (paidCount + sponsorCount)) * 100).toFixed(1) : '0.0'}%
                                     </p>
                                 </div>
                             </CardContent>
@@ -232,21 +236,21 @@ export default function AnalyticsPage() {
                                     <p className="text-xs text-gray-500 uppercase font-semibold">Paid</p>
                                     <p className="text-2xl font-bold text-blue-600">{stats.day2Paid}</p>
                                     <p className="text-xs text-gray-400">
-                                        {paidCount ? Math.round((stats.day2Paid / paidCount) * 100) : 0}%
+                                        {paidCount ? ((stats.day2Paid / paidCount) * 100).toFixed(1) : '0.0'}%
                                     </p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs text-gray-500 uppercase font-semibold">Sponsor</p>
                                     <p className="text-2xl font-bold text-purple-600">{stats.day2Sponsor}</p>
                                     <p className="text-xs text-gray-400">
-                                        {sponsorCount ? Math.round((stats.day2Sponsor / sponsorCount) * 100) : 0}%
+                                        {sponsorCount ? ((stats.day2Sponsor / sponsorCount) * 100).toFixed(1) : '0.0'}%
                                     </p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-xs text-gray-500 uppercase font-semibold">All</p>
                                     <p className="text-2xl font-bold text-gray-900">{stats.day2Attendance}</p>
                                     <p className="text-xs text-gray-400">
-                                        {(paidCount + sponsorCount) ? Math.round((stats.day2Attendance / (paidCount + sponsorCount)) * 100) : 0}%
+                                        {(paidCount + sponsorCount) ? ((stats.day2Attendance / (paidCount + sponsorCount)) * 100).toFixed(1) : '0.0'}%
                                     </p>
                                 </div>
                             </CardContent>
@@ -309,43 +313,76 @@ export default function AnalyticsPage() {
                             </CardContent>
                         </Card>
 
-                        {/* By Niche */}
-                        <Card>
+                        {/* By Niche - Pie Chart */}
+                        <Card className="col-span-1 lg:col-span-2">
                             <CardHeader>
-                                <CardTitle>By Niche</CardTitle>
+                                <CardTitle>📊 By Niche</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ul className="space-y-2 max-h-48 overflow-y-auto">
-                                    {Object.entries(stats.byNiche)
-                                        .sort(([, a]: any, [, b]: any) => b - a)
-                                        .map(([key, val]: any) => (
-                                            <li key={key} className="flex justify-between border-b pb-1 last:border-0">
-                                                <span className="truncate mr-2">{key}</span>
-                                                <span className="font-bold">{val}</span>
-                                            </li>
-                                        ))}
-                                    {Object.keys(stats.byNiche).length === 0 && <p className="text-gray-500">No data</p>}
-                                </ul>
+                                {Object.keys(stats.byNiche).length === 0 ? (
+                                    <p className="text-gray-500 text-center py-8">No data</p>
+                                ) : (
+                                    <div className="h-80">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={Object.entries(stats.byNiche)
+                                                        .sort(([, a]: any, [, b]: any) => b - a)
+                                                        .slice(0, 10) // Top 10 only
+                                                        .map(([name, value]) => ({ name, value }))}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    labelLine={false}
+                                                    label={({ name, percent }) => `${name.slice(0, 15)}${name.length > 15 ? '...' : ''} (${(percent * 100).toFixed(0)}%)`}
+                                                    outerRadius={100}
+                                                    fill="#8884d8"
+                                                    dataKey="value"
+                                                >
+                                                    {Object.entries(stats.byNiche).slice(0, 10).map((_, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip formatter={(value: number) => [`${value} orang`, 'Jumlah']} />
+                                                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
-                        {/* By State */}
-                        <Card>
+                        {/* By State - Bar Chart */}
+                        <Card className="col-span-1 lg:col-span-2">
                             <CardHeader>
-                                <CardTitle>By State</CardTitle>
+                                <CardTitle>🗺️ By State</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ul className="space-y-2 max-h-48 overflow-y-auto">
-                                    {Object.entries(stats.byState)
-                                        .sort(([, a]: any, [, b]: any) => b - a)
-                                        .map(([key, val]: any) => (
-                                            <li key={key} className="flex justify-between border-b pb-1 last:border-0">
-                                                <span>{key}</span>
-                                                <span className="font-bold">{val}</span>
-                                            </li>
-                                        ))}
-                                    {Object.keys(stats.byState).length === 0 && <p className="text-gray-500">No data</p>}
-                                </ul>
+                                {Object.keys(stats.byState).length === 0 ? (
+                                    <p className="text-gray-500 text-center py-8">No data</p>
+                                ) : (
+                                    <div className="h-80">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={Object.entries(stats.byState)
+                                                    .sort(([, a]: any, [, b]: any) => b - a)
+                                                    .slice(0, 10) // Top 10 only
+                                                    .map(([name, value]) => ({ name, value }))}
+                                                layout="vertical"
+                                                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis type="number" />
+                                                <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 12 }} />
+                                                <Tooltip formatter={(value: number) => [`${value} orang`, 'Jumlah']} />
+                                                <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]}>
+                                                    {Object.entries(stats.byState).slice(0, 10).map((_, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
 
