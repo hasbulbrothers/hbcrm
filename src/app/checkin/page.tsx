@@ -99,7 +99,63 @@ function CheckInContent() {
                         <Button type="submit" className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 text-white" disabled={loading}>
                             {loading ? 'Searching...' : 'Search'}
                         </Button>
+
+                        {/* Note about using buyer's info */}
+                        <p className="text-xs text-yellow-400 text-center mt-3">
+                            *Sila masukkan nama atau no telefon pembeli tiket bukan details peserta. Nama atau no telefon yang digunakan di resit/invois. Selepas masukkan data pembeli akan keluar berapa total tiket yang tuan/puan beli.
+                        </p>
+
+                        {/* Receipt example button */}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full mt-2 border-zinc-600 text-gray-300 hover:bg-zinc-800 hover:text-white"
+                            onClick={() => {
+                                const modal = document.getElementById('receipt-modal')
+                                if (modal) modal.classList.remove('hidden')
+                            }}
+                        >
+                            📄 Lihat Contoh Resit
+                        </Button>
                     </form>
+
+                    {/* Receipt Example Modal */}
+                    <div
+                        id="receipt-modal"
+                        className="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                e.currentTarget.classList.add('hidden')
+                            }
+                        }}
+                    >
+                        <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-auto">
+                            <div className="p-4 border-b flex justify-between items-center">
+                                <h3 className="font-bold text-gray-900">Contoh Resit</h3>
+                                <button
+                                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                                    onClick={() => {
+                                        const modal = document.getElementById('receipt-modal')
+                                        if (modal) modal.classList.add('hidden')
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <div className="p-4">
+                                <Image
+                                    src="/receipt-example.png"
+                                    alt="Contoh Resit"
+                                    width={500}
+                                    height={600}
+                                    className="w-full h-auto"
+                                />
+                                <p className="text-sm text-gray-600 mt-4 text-center">
+                                    Guna nama atau no telefon dari bahagian &quot;KEPADA&quot; dalam resit anda.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     {error && <Alert variant="destructive" className="mt-4 bg-red-900 border-red-800 text-white"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
 
