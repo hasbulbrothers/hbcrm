@@ -15,7 +15,7 @@ export async function getParticipants(
 
     let dbQuery = supabase
         .from('participants')
-        .select('*, checkins(day)', { count: 'exact' })
+        .select('*, checkins(day, attend_count)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to)
 

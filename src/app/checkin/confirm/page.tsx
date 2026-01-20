@@ -80,26 +80,37 @@ function ConfirmContent() {
     }
 
     if (success) {
+        const isSponsor = participant?.ticket_type?.toLowerCase() === 'sponsor'
+
         return (
             <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
-                <Card className="w-full max-w-md text-center bg-green-800 border-green-700">
+                <Card className={`w-full max-w-md text-center border-none ${isSponsor ? 'bg-zinc-900 border-zinc-800' : 'bg-green-800 border-green-700'}`}>
                     <CardHeader>
                         <CardTitle className="text-3xl font-bold text-white">✓ Congratulations!</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <p className="text-xl text-green-100">Check-in Successful</p>
-                        <div className="bg-green-700 p-4 rounded text-left text-white">
+                        <p className={`text-xl ${isSponsor ? 'text-white' : 'text-green-100'}`}>Check-in Successful</p>
+                        <div className={`${isSponsor ? 'bg-zinc-800' : 'bg-green-700'} p-4 rounded text-left text-white`}>
                             <p><strong>Name:</strong> {participant?.name}</p>
                             <p><strong>Ticket:</strong> {participant?.ticket_type || 'General'}</p>
                             <p><strong>Day:</strong> Day {day}</p>
                             <p><strong>Attendance:</strong> {attendCount} person(s)</p>
                         </div>
-                        <div className="bg-yellow-500 p-4 rounded text-black">
-                            <p className="font-semibold text-lg">📖 Please collect your workbook at the counter.</p>
-                        </div>
+
+                        {isSponsor ? (
+                            <div className="bg-blue-600 p-4 rounded text-white mt-4">
+                                <p className="font-semibold text-lg">Terima kasih untuk pendaftaran. </p>
+                                <p className="mt-2 text-sm">Untuk tiket sponsor tiada sebarang workbook dan bonus. Boleh terus naik ke level 20.</p>
+                            </div>
+                        ) : (
+                            <div className="bg-yellow-500 p-4 rounded text-black mt-4">
+                                <p className="font-semibold text-lg">📖 Please collect your workbook at the counter.</p>
+                            </div>
+                        )}
+
                         <Button
                             onClick={() => router.push(`/checkin?day=${day}&event=${eventCode}`)}
-                            className="w-full mt-4 bg-white text-green-900 hover:bg-gray-100"
+                            className={`w-full mt-4 ${isSponsor ? 'bg-zinc-700 hover:bg-zinc-600 text-white' : 'bg-white text-green-900 hover:bg-gray-100'}`}
                         >
                             Done
                         </Button>

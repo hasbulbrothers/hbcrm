@@ -221,8 +221,11 @@ export default function ParticipantsPage() {
                         ) : (
                             data.map((p) => {
                                 // Determine attendance from nested checkins data
-                                const day1 = p.checkins?.some((c: any) => c.day === 1) ? 'Present' : '-'
-                                const day2 = p.checkins?.some((c: any) => c.day === 2) ? 'Present' : '-'
+                                const checkin1 = p.checkins?.find((c: any) => c.day === 1)
+                                const checkin2 = p.checkins?.find((c: any) => c.day === 2)
+
+                                const day1 = checkin1 ? `Present (${checkin1.attend_count})` : '-'
+                                const day2 = checkin2 ? `Present (${checkin2.attend_count})` : '-'
 
                                 return (
                                     <TableRow key={p.id} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
