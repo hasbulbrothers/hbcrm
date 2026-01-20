@@ -342,7 +342,7 @@ export default function AnalyticsPage() {
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                     ))}
                                                 </Pie>
-                                                <Tooltip formatter={(value: number) => [`${value} orang`, 'Jumlah']} />
+                                                <Tooltip formatter={(value: any) => [`${value} orang`, 'Jumlah']} />
                                                 <Legend wrapperStyle={{ fontSize: '12px' }} />
                                             </PieChart>
                                         </ResponsiveContainer>
@@ -373,7 +373,7 @@ export default function AnalyticsPage() {
                                                 <CartesianGrid strokeDasharray="3 3" />
                                                 <XAxis type="number" />
                                                 <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 12 }} />
-                                                <Tooltip formatter={(value: number) => [`${value} orang`, 'Jumlah']} />
+                                                <Tooltip formatter={(value: any) => [`${value} orang`, 'Jumlah']} />
                                                 <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]}>
                                                     {Object.entries(stats.byState).slice(0, 10).map((_, index) => (
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
