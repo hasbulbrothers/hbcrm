@@ -211,6 +211,62 @@ export async function getSeminarAnalytics(eventCode: string) {
     }
 }
 
+// Get Day 1 attendance breakdown by sales, niche, state
+export async function getDay1AttendanceBreakdown(eventCode: string) {
+    // Get Day 1 check-ins with participant data
+    const { data: checkins } = await supabase
+        .from('checkins')
+        .select(`
+            attend_count,
+            participant_id,
+            participants (
+                total_sales,
+                niche,
+                state
+            )
+        `)
+        .eq('event_code', eventCode)
+        .eq('day', 1)
+
+    // Aggregate by categories
+    const bySales: Record<string, number> = {}
+    const byNiche: Record<string, number> = {}
+    const byState: Record<string, number> = {}
+    let totalAttendance = 0
+
+    checkins?.forEach((c: any) => {
+        const attendCount = c.attend_count || 1
+        totalAttendance += attendCount
+        const p = c.participants
+
+        if (p) {
+            // By Sales (total_sales)
+            const salesKey = p.total_sales || 'Unknown'
+            bySales[salesKey] = (bySales[salesKey] || 0) + attendCount
+
+            // By Niche
+            if (p.niche) {
+                byNiche[p.niche] = (byNiche[p.niche] || 0) + attendCount
+            }
+
+            // By State
+            if (p.state) {
+                byState[p.state] = (byState[p.state] || 0) + attendCount
+            }
+        }
+    })
+
+    return {
+        success: true,
+        data: {
+            bySales,
+            byNiche,
+            byState,
+            totalAttendance
+        }
+    }
+}
+
 // Get participant counts for a specific seminar
 export async function getSeminarStats(eventCode: string) {
     const { data, error } = await supabase

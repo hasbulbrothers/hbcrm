@@ -12,11 +12,6 @@ export async function searchParticipant(query: string, eventCode: string, day?: 
     // Normalize query (remove non-digits for phone, trim for name)
     const isPhone = /^\d+$/.test(query.replace(/\D/g, ''))
 
-    // Check if Service Role Key is available
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        console.warn('SUPABASE_SERVICE_ROLE_KEY is missing. Search may fail due to RLS policies.')
-    }
-
     let dbQuery = supabaseAdmin
         .from('participants')
         .select('*, checkins(day, attend_count, status)')

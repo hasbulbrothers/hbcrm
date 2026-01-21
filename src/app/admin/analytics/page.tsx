@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Users, DollarSign, Gift } from 'lucide-react'
-import { getSeminars, getSeminarAnalytics, getSeminarStats, updateSeminarStats } from '../actions'
+import { getSeminars, getSeminarAnalytics, getSeminarStats, updateSeminarStats, getDay1AttendanceBreakdown } from '../actions'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 
 // Color palette for charts
@@ -25,6 +25,9 @@ export default function AnalyticsPage() {
     const [paidCount, setPaidCount] = useState<number>(0)
     const [sponsorCount, setSponsorCount] = useState<number>(0)
     const [saving, setSaving] = useState(false)
+
+    // Day 1 attendance breakdown
+    const [day1Breakdown, setDay1Breakdown] = useState<any>(null)
 
     async function loadParticipantCounts(eventCode: string) {
         if (!eventCode) return
@@ -50,6 +53,13 @@ export default function AnalyticsPage() {
         setStatsLoading(false)
     }
 
+    async function loadDay1Breakdown(eventCode: string) {
+        const res = await getDay1AttendanceBreakdown(eventCode)
+        if (res.success && res.data) {
+            setDay1Breakdown(res.data)
+        }
+    }
+
     async function loadSeminars() {
         setLoading(true)
         try {
@@ -61,6 +71,7 @@ export default function AnalyticsPage() {
                 setSelectedSeminar(firstEvent)
                 await loadStats(firstEvent)
                 await loadParticipantCounts(firstEvent)
+                await loadDay1Breakdown(firstEvent)
             } else {
                 // No seminars found - that's okay
                 setSeminars([])
@@ -90,6 +101,7 @@ export default function AnalyticsPage() {
         setSelectedSeminar(eventCode)
         loadStats(eventCode)
         loadParticipantCounts(eventCode)
+        loadDay1Breakdown(eventCode)
     }
 
     if (loading) {
@@ -257,26 +269,147 @@ export default function AnalyticsPage() {
                         </Card>
                     </div>
 
+                    {/* Summary Attendance Day 1 */}
+                    {day1Breakdown && (
+                        <div className="space-y-6">
+                            <h2 className="text-xl font-bold text-gray-800">📊 Summary Attendance Day 1</h2>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Chart 1: By Sales - Full Width Pie Chart */}
+                                <Card className="lg:col-span-3">
+                                    <CardHeader>
+                                        <CardTitle className="text-base">Kehadiran By Sales</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {Object.keys(day1Breakdown.bySales).length === 0 ? (
+                                            <p className="text-gray-500 text-center py-8">No data</p>
+                                        ) : (
+                                            <div className="h-96">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={Object.entries(day1Breakdown.bySales)
+                                                                .sort(([, a]: any, [, b]: any) => b - a)
+                                                                .map(([name, value]: any) => ({
+                                                                    name,
+                                                                    value,
+                                                                    percent: day1Breakdown.totalAttendance ? ((value / day1Breakdown.totalAttendance) * 100).toFixed(1) : 0
+                                                                }))}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            labelLine={true}
+                                                            label={({ name, percent }: any) => `${name} (${percent}%)`}
+                                                            outerRadius={120}
+                                                            fill="#8884d8"
+                                                            dataKey="value"
+                                                        >
+                                                            {Object.entries(day1Breakdown.bySales).map((_, index) => (
+                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip formatter={(value: any, name: any, props: any) => [
+                                                            `${value} orang (${props.payload.percent}%)`,
+                                                            'Hadir'
+                                                        ]} />
+                                                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Chart 2: By Niche - Full Width Pie Chart */}
+                                <Card className="lg:col-span-3">
+                                    <CardHeader>
+                                        <CardTitle className="text-base">Kehadiran By Niche</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {Object.keys(day1Breakdown.byNiche).length === 0 ? (
+                                            <p className="text-gray-500 text-center py-8">No data</p>
+                                        ) : (
+                                            <div className="h-96">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={Object.entries(day1Breakdown.byNiche)
+                                                                .sort(([, a]: any, [, b]: any) => b - a)
+                                                                .slice(0, 10)
+                                                                .map(([name, value]: any) => ({
+                                                                    name,
+                                                                    value,
+                                                                    percent: day1Breakdown.totalAttendance ? ((value / day1Breakdown.totalAttendance) * 100).toFixed(1) : 0
+                                                                }))}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            labelLine={true}
+                                                            label={({ name, percent }: any) => `${name} (${percent}%)`}
+                                                            outerRadius={120}
+                                                            fill="#8884d8"
+                                                            dataKey="value"
+                                                        >
+                                                            {Object.entries(day1Breakdown.byNiche).slice(0, 10).map((_, index) => (
+                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip formatter={(value: any, name: any, props: any) => [
+                                                            `${value} orang (${props.payload.percent}%)`,
+                                                            'Hadir'
+                                                        ]} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Chart 3: By State with Percentage */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base">Kehadiran By Negeri (%)</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {Object.keys(day1Breakdown.byState).length === 0 ? (
+                                            <p className="text-gray-500 text-center py-8">No data</p>
+                                        ) : (
+                                            <div className="h-64">
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart
+                                                        data={Object.entries(day1Breakdown.byState)
+                                                            .sort(([, a]: any, [, b]: any) => b - a)
+                                                            .slice(0, 8)
+                                                            .map(([name, value]: any) => ({
+                                                                name,
+                                                                value,
+                                                                percent: day1Breakdown.totalAttendance ? ((value / day1Breakdown.totalAttendance) * 100).toFixed(1) : 0
+                                                            }))}
+                                                        layout="vertical"
+                                                        margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
+                                                    >
+                                                        <CartesianGrid strokeDasharray="3 3" />
+                                                        <XAxis type="number" />
+                                                        <YAxis type="category" dataKey="name" width={50} tick={{ fontSize: 11 }} />
+                                                        <Tooltip formatter={(value: any, name: any, props: any) => [
+                                                            `${value} orang (${props.payload.percent}%)`,
+                                                            'Hadir'
+                                                        ]} />
+                                                        <Bar dataKey="value" fill="#10B981" radius={[0, 4, 4, 0]}>
+                                                            {Object.entries(day1Breakdown.byState).slice(0, 8).map((_, index) => (
+                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                            ))}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Breakdown Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* By Ticket Type */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>By Ticket Type</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ul className="space-y-2">
-                                    {Object.entries(stats.byTicketType).map(([key, val]: any) => (
-                                        <li key={key} className="flex justify-between border-b pb-1 last:border-0">
-                                            <span>{key}</span>
-                                            <span className="font-bold">{val}</span>
-                                        </li>
-                                    ))}
-                                    {Object.keys(stats.byTicketType).length === 0 && <p className="text-gray-500">No data</p>}
-                                </ul>
-                            </CardContent>
-                        </Card>
-
                         {/* By Package */}
                         <Card>
                             <CardHeader>
@@ -313,78 +446,7 @@ export default function AnalyticsPage() {
                             </CardContent>
                         </Card>
 
-                        {/* By Niche - Pie Chart */}
-                        <Card className="col-span-1 lg:col-span-2">
-                            <CardHeader>
-                                <CardTitle>📊 By Niche</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {Object.keys(stats.byNiche).length === 0 ? (
-                                    <p className="text-gray-500 text-center py-8">No data</p>
-                                ) : (
-                                    <div className="h-80">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={Object.entries(stats.byNiche)
-                                                        .sort(([, a]: any, [, b]: any) => b - a)
-                                                        .slice(0, 10) // Top 10 only
-                                                        .map(([name, value]) => ({ name, value }))}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    labelLine={false}
-                                                    label={({ name, percent }: any) => `${(name || '').slice(0, 15)}${(name || '').length > 15 ? '...' : ''} (${(percent * 100).toFixed(0)}%)`}
-                                                    outerRadius={100}
-                                                    fill="#8884d8"
-                                                    dataKey="value"
-                                                >
-                                                    {Object.entries(stats.byNiche).slice(0, 10).map((_, index) => (
-                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip formatter={(value: any) => [`${value} orang`, 'Jumlah']} />
-                                                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
 
-                        {/* By State - Bar Chart */}
-                        <Card className="col-span-1 lg:col-span-2">
-                            <CardHeader>
-                                <CardTitle>🗺️ By State</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {Object.keys(stats.byState).length === 0 ? (
-                                    <p className="text-gray-500 text-center py-8">No data</p>
-                                ) : (
-                                    <div className="h-80">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart
-                                                data={Object.entries(stats.byState)
-                                                    .sort(([, a]: any, [, b]: any) => b - a)
-                                                    .slice(0, 10) // Top 10 only
-                                                    .map(([name, value]) => ({ name, value }))}
-                                                layout="vertical"
-                                                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                                            >
-                                                <CartesianGrid strokeDasharray="3 3" />
-                                                <XAxis type="number" />
-                                                <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 12 }} />
-                                                <Tooltip formatter={(value: any) => [`${value} orang`, 'Jumlah']} />
-                                                <Bar dataKey="value" fill="#8B5CF6" radius={[0, 4, 4, 0]}>
-                                                    {Object.entries(stats.byState).slice(0, 10).map((_, index) => (
-                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
 
                         {/* By BDS Status */}
                         <Card>
