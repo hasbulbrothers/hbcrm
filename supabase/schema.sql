@@ -1,13 +1,28 @@
+-- =============================================
+-- HBCRM Database Schema (matches actual Supabase DB)
+-- =============================================
+
 -- Create participants table
 create table participants (
   id uuid default gen_random_uuid() primary key,
   event_code text not null,
   name text not null,
   phone text not null,
+  email text,
   ticket_type text not null,
   niche text,
   state text,
   total_sales numeric(10, 2),
+  registration_date date,
+  status_hadir text,
+  package text,
+  payment_status text,
+  pic text,
+  bds_invited text,
+  bds_status text,
+  close_by text,
+  close_day text,
+  "Bilangan hadir" integer,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -26,16 +41,13 @@ create table checkins (
 -- Add unique constraint to prevent double check-in for the same day
 create unique index idx_unique_checkin on checkins (event_code, day, participant_id);
 
--- Create seminars table to store seminar information
-create table seminars (
+-- Create seminar_stats table to store participant counts per seminar
+create table seminar_stats (
   id uuid default gen_random_uuid() primary key,
   event_code text not null unique,
-  name text not null,
-  description text,
-  start_date date,
-  end_date date,
-  location text,
-  status text default 'active' check (status in ('active', 'completed', 'cancelled')),
+  paid_participants integer default 0,
+  sponsor_participants integer default 0,
+  total_participants integer default 0,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -48,22 +60,20 @@ create table user_roles (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Create pending_invites table to track invitations
-create table pending_invites (
-  id uuid default gen_random_uuid() primary key,
-  email text not null unique,
-  role text not null default 'general' check (role in ('admin', 'general')),
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
-);
-
 -- Enable Row Level Security (RLS)
 alter table participants enable row level security;
 alter table checkins enable row level security;
 alter table user_roles enable row level security;
-alter table pending_invites enable row level security;
+alter table seminar_stats enable row level security;
 
--- Policy: Allow anyone to read participants (for search)
+-- Policy: Allow anyone to read participants (for search/check-in)
 create policy "Enable read access for all users" on participants for select using (true);
+
+-- Policy: Allow insert for participants (CSV import)
+create policy "Enable insert for all users" on participants for insert with check (true);
+
+-- Policy: Allow update for participants (editable fields)
+create policy "Enable update for all users" on participants for update using (true);
 
 -- Policy: Allow insert/update for checkins
 create policy "Enable insert for all users" on checkins for insert with check (true);
@@ -75,8 +85,10 @@ create policy "Enable insert for authenticated" on user_roles for insert to auth
 create policy "Enable update for authenticated" on user_roles for update to authenticated using (true);
 create policy "Enable delete for authenticated" on user_roles for delete to authenticated using (true);
 
--- Policy: Pending invites - authenticated users can manage
-create policy "Enable all for authenticated" on pending_invites for all to authenticated using (true);
+-- Policy: Seminar stats - authenticated users can manage
+create policy "Enable read for all" on seminar_stats for select using (true);
+create policy "Enable upsert for authenticated" on seminar_stats for insert to authenticated with check (true);
+create policy "Enable update for authenticated" on seminar_stats for update to authenticated using (true);
 
 -- Indexes for performance
 create index idx_participants_phone on participants (phone);
@@ -84,11 +96,13 @@ create index idx_participants_name on participants (name);
 create index idx_participants_event_code on participants (event_code);
 create index idx_user_roles_user_id on user_roles (user_id);
 create index idx_user_roles_email on user_roles (email);
+create index idx_checkins_event_code on checkins (event_code);
+create index idx_checkins_participant_id on checkins (participant_id);
 
 -- =============================================
 -- SETUP INSTRUCTIONS
 -- =============================================
--- 1. Run this schema in Supabase SQL Editor
+-- 1. Run this schema in Supabase SQL Editor (if starting fresh)
 -- 2. Create an admin user in Supabase Auth (Authentication > Users > Add user)
 -- 3. After creating the user, add their role:
 --    INSERT INTO user_roles (user_id, email, role) 

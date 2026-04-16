@@ -1,6 +1,6 @@
 'use server'
 
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/server'
 
 export async function getParticipants(
     page: number = 1,
@@ -13,6 +13,8 @@ export async function getParticipants(
     closeBy: string = '',
     state: string = ''
 ) {
+    const supabase = await createClient()
+
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
@@ -65,6 +67,8 @@ export async function getParticipants(
 
 // Get unique values for filter dropdowns
 export async function getFilterOptions() {
+    const supabase = await createClient()
+
     // Fetch unique niches
     const { data: nicheData } = await supabase
         .from('participants')

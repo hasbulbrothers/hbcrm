@@ -1,8 +1,9 @@
 'use server'
 
-import { supabase } from '@/lib/supabaseClient'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function getParticipantById(id: string) {
+    const supabase = createAdminClient()
     const { data, error } = await supabase
         .from('participants')
         .select('*, checkins(day, attend_count, status)')

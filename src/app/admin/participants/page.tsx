@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Filter } from 'lucide-react'
+import { Filter, Download } from 'lucide-react'
 import {
     Table,
     TableBody,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table"
 import { getParticipants, getFilterOptions } from './actions'
 import { getSeminars } from '../actions'
+import { exportParticipants } from './exportAction'
 
 // Editable Cell Component
 const EditableCell = ({ id, field, value, options, onUpdate }: { id: string, field: string, value: string, options: string[], onUpdate: (id: string, field: string, value: string) => void }) => {
@@ -55,6 +56,7 @@ export default function ParticipantsPage() {
     const [page, setPage] = useState(1)
     const [search, setSearch] = useState('')
     const [loading, setLoading] = useState(false)
+    const [exporting, setExporting] = useState(false)
 
     // Filter states
     const [seminars, setSeminars] = useState<string[]>([])
@@ -125,6 +127,73 @@ export default function ParticipantsPage() {
         setSelectedCloseBy('')
         setSelectedState('')
         setPage(1)
+        // Manually trigger reload since state updates are async
+        setTimeout(() => loadData(), 0)
+    }
+
+    const handleExport = async () => {
+        setExporting(true)
+        try {
+            const res = await exportParticipants(search, selectedSeminar, startDate, endDate, selectedNiche, selectedCloseBy, selectedState)
+            if (!res.data || res.data.length === 0) {
+                alert('No data to export.')
+                setExporting(false)
+                return
+            }
+
+            const headers = ['Seminar', 'Name', 'Phone', 'Email', 'Ticket', 'Day 1', 'Day 2', 'Niche', 'State', 'Sales', 'Reg. Date', 'BDS Invited', 'BDS Status', 'Close By', 'Package', 'Payment', 'Day', 'PIC']
+
+            const rows = res.data.map((p: any) => {
+                const checkin1 = p.checkins?.find((c: any) => c.day === 1)
+                const checkin2 = p.checkins?.find((c: any) => c.day === 2)
+                const day1 = checkin1 ? `Present (${checkin1.attend_count})` : '-'
+                const day2 = checkin2 ? `Present (${checkin2.attend_count})` : '-'
+
+                return [
+                    p.event_code || '-',
+                    p.name || '-',
+                    p.phone || '-',
+                    p.email || '-',
+                    p.ticket_type || '-',
+                    day1,
+                    day2,
+                    p.niche || '-',
+                    p.state || '-',
+                    p.total_sales || '-',
+                    p.registration_date ? new Date(p.registration_date).toLocaleDateString() : '-',
+                    p.bds_invited || '-',
+                    p.bds_status || '-',
+                    p.close_by || '-',
+                    p.package || '-',
+                    p.payment_status || '-',
+                    p.close_day || '-',
+                    p.pic || '-',
+                ]
+            })
+
+            const escapeCsv = (val: string) => {
+                if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                    return `"${val.replace(/"/g, '""')}"`
+                }
+                return val
+            }
+
+            const csvContent = [headers.map(escapeCsv).join(','), ...rows.map((row: string[]) => row.map(escapeCsv).join(','))].join('\n')
+
+            const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `participants_${new Date().toISOString().slice(0, 10)}.csv`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+        } catch (err) {
+            console.error('Export failed:', err)
+            alert('Export failed. Please try again.')
+        }
+        setExporting(false)
     }
 
     const hasActiveFilters = selectedSeminar || startDate || endDate || search || selectedNiche || selectedCloseBy || selectedState
@@ -133,6 +202,15 @@ export default function ParticipantsPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Participants List</h1>
+                <Button
+                    onClick={handleExport}
+                    disabled={exporting}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                >
+                    <Download className="h-4 w-4" />
+                    {exporting ? 'Exporting...' : 'Export CSV'}
+                </Button>
             </div>
 
             <Card className="mb-6">
@@ -310,10 +388,10 @@ export default function ParticipantsPage() {
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.email || '-'}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.ticket_type}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">
-                                            <span className={day1 === 'Present' ? 'text-green-600 font-bold' : 'text-gray-400'}>{day1}</span>
+                                            <span className={day1.startsWith('Present') ? 'text-green-600 font-bold' : 'text-gray-400'}>{day1}</span>
                                         </TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">
-                                            <span className={day2 === 'Present' ? 'text-green-600 font-bold' : 'text-gray-400'}>{day2}</span>
+                                            <span className={day2.startsWith('Present') ? 'text-green-600 font-bold' : 'text-gray-400'}>{day2}</span>
                                         </TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.niche || '-'}</TableCell>
                                         <TableCell className="whitespace-nowrap border-r border-gray-200 px-4 py-3">{p.state || '-'}</TableCell>

@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use server'
 
-import { supabase } from '@/lib/supabaseClient'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function getDashboardStats() {
+    const supabase = await createClient()
+
     // Total Checkins Day 1
     const { count: day1Count } = await supabase
         .from('checkins')
@@ -15,10 +17,6 @@ export async function getDashboardStats() {
         .from('checkins')
         .select('*', { count: 'exact', head: true })
         .eq('day', 2)
-
-    // By Niche (Join needed or just raw aggregation if possible. Supabase JS doesn't do complex grouping easily without RPC, 
-    // but we can fetch participants who checked in and aggregate in JS for MVP if dataset small (< 10k), 
-    // or use RPC. For MVP let's fetch checkins with participant data.
 
     // Fetching all checkins with participant info for aggregation
     const { data: checkins } = await supabase
@@ -75,6 +73,8 @@ export async function getDashboardStats() {
 
 // Get list of all events/seminars
 export async function getSeminars() {
+    const supabase = await createClient()
+
     const { data, error } = await supabase
         .from('participants')
         .select('event_code')
@@ -92,6 +92,8 @@ export async function getSeminars() {
 
 // Get analytics for a specific seminar
 export async function getSeminarAnalytics(eventCode: string) {
+    const supabase = await createClient()
+
     // Total participants for this event
     const { count: totalParticipants } = await supabase
         .from('participants')
@@ -213,6 +215,8 @@ export async function getSeminarAnalytics(eventCode: string) {
 
 // Get Day 1 attendance breakdown by sales, niche, state
 export async function getDay1AttendanceBreakdown(eventCode: string) {
+    const supabase = await createClient()
+
     // Get Day 1 check-ins with participant data
     const { data: checkins } = await supabase
         .from('checkins')
@@ -269,6 +273,8 @@ export async function getDay1AttendanceBreakdown(eventCode: string) {
 
 // Get participant counts for a specific seminar
 export async function getSeminarStats(eventCode: string) {
+    const supabase = await createClient()
+
     const { data, error } = await supabase
         .from('seminar_stats')
         .select('paid_participants, sponsor_participants')
@@ -288,6 +294,8 @@ export async function getSeminarStats(eventCode: string) {
 
 // Update participant counts for a specific seminar
 export async function updateSeminarStats(eventCode: string, paidCount: number, sponsorCount: number) {
+    const supabase = await createClient()
+
     const { error } = await supabase
         .from('seminar_stats')
         .upsert({
@@ -305,23 +313,15 @@ export async function updateSeminarStats(eventCode: string, paidCount: number, s
     return { success: true }
 }
 
-// ============ USER MANAGEMENT ============
+// ============ USER MANAGEMENT (uses user_roles table) ============
 
-// Get all users with their permissions
+// Get all users with their roles
 export async function getUsers() {
-    const { data, error } = await supabase
-        .from('user_permissions')
-        .select(`
-            id,
-            user_id,
-            role,
-            can_view_dashboard,
-            can_view_participants,
-            can_view_analytics,
-            can_import_data,
-            can_manage_users,
-            created_at
-        `)
+    const supabaseAdmin = createAdminClient()
+
+    const { data, error } = await supabaseAdmin
+        .from('user_roles')
+        .select('*')
         .order('created_at', { ascending: false })
 
     if (error) {
@@ -329,22 +329,12 @@ export async function getUsers() {
         return { success: false, users: [] }
     }
 
-    // Fetch user emails from auth.users
-    const { data: authUsers } = await supabase.auth.admin.listUsers()
-
-    const usersWithEmails = data.map(perm => {
-        const authUser = authUsers?.users.find(u => u.id === perm.user_id)
-        return {
-            ...perm,
-            email: authUser?.email || 'Unknown'
-        }
-    })
-
-    return { success: true, users: usersWithEmails }
+    return { success: true, users: data }
 }
 
-// Get current user's permissions
+// Get current user's role
 export async function getCurrentUserPermissions() {
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -352,7 +342,7 @@ export async function getCurrentUserPermissions() {
     }
 
     const { data, error } = await supabase
-        .from('user_permissions')
+        .from('user_roles')
         .select('*')
         .eq('user_id', user.id)
         .single()
@@ -364,26 +354,20 @@ export async function getCurrentUserPermissions() {
     return { success: true, permissions: data }
 }
 
-// Update user permissions
+// Update user role
 export async function updateUserPermissions(userId: string, permissions: {
     role?: string
-    can_view_dashboard?: boolean
-    can_view_participants?: boolean
-    can_view_analytics?: boolean
-    can_import_data?: boolean
-    can_manage_users?: boolean
 }) {
+    const supabase = await createClient()
+
     const { error } = await supabase
-        .from('user_permissions')
-        .update({
-            ...permissions,
-            updated_at: new Date().toISOString()
-        })
+        .from('user_roles')
+        .update({ role: permissions.role })
         .eq('user_id', userId)
 
     if (error) {
-        console.error('Error updating permissions:', error)
-        return { success: false, error: 'Failed to update permissions' }
+        console.error('Error updating role:', error)
+        return { success: false, error: 'Failed to update role' }
     }
 
     return { success: true }
@@ -392,14 +376,11 @@ export async function updateUserPermissions(userId: string, permissions: {
 // Create new user (requires admin service role key)
 export async function createUser(email: string, password: string, permissions: {
     role: string
-    can_view_dashboard: boolean
-    can_view_participants: boolean
-    can_view_analytics: boolean
-    can_import_data: boolean
-    can_manage_users: boolean
 }) {
-    // This requires admin privileges
-    const { data, error } = await supabase.auth.admin.createUser({
+    const supabaseAdmin = createAdminClient()
+
+    // Create auth user
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
         email_confirm: true
@@ -410,12 +391,19 @@ export async function createUser(email: string, password: string, permissions: {
         return { success: false, error: error.message }
     }
 
-    // Update permissions (trigger will create default, we override)
+    // Create user_roles entry
     if (data.user) {
-        await supabase
-            .from('user_permissions')
-            .update(permissions)
-            .eq('user_id', data.user.id)
+        const { error: roleError } = await supabaseAdmin
+            .from('user_roles')
+            .insert({
+                user_id: data.user.id,
+                email: data.user.email,
+                role: permissions.role || 'general'
+            })
+
+        if (roleError) {
+            console.error('Error creating user role:', roleError)
+        }
     }
 
     return { success: true, user: data.user }
@@ -423,7 +411,16 @@ export async function createUser(email: string, password: string, permissions: {
 
 // Delete user
 export async function deleteUser(userId: string) {
-    const { error } = await supabase.auth.admin.deleteUser(userId)
+    const supabaseAdmin = createAdminClient()
+
+    // Delete from user_roles first
+    await supabaseAdmin
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+
+    // Delete auth user
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
     if (error) {
         console.error('Error deleting user:', error)

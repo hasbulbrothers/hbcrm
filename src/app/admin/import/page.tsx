@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabase/client'
 
 export default function ImportPage() {
     const [file, setFile] = useState<File | null>(null)
@@ -262,6 +262,7 @@ export default function ImportPage() {
             setStatus(`Found ${rows.length} records. Uploading...`)
 
             // Batch Insert
+            const supabase = createClient()
             const { error } = await supabase.from('participants').insert(rows)
 
             if (error) {

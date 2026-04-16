@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabaseClient'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
+    const supabase = createAdminClient()
     const { data, error } = await supabase
         .from('participants')
         .select('event_code, name, phone, ticket_type')

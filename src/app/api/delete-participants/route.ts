@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabaseClient'
+import { createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function DELETE() {
+    const supabase = createAdminClient()
     const { error } = await supabase
         .from('participants')
         .delete()
