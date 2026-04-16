@@ -42,14 +42,20 @@ function CheckInContent() {
         setError('')
         setParticipants([])
 
-        const res = await searchParticipant(searchQuery, eventCode)
+        try {
+            const res = await searchParticipant(searchQuery, eventCode)
 
-        if (res.error) {
-            setError(res.error)
-        } else if (res.data) {
-            setParticipants(res.data as Participant[])
+            if (res.error) {
+                setError(res.error)
+            } else if (res.data) {
+                setParticipants(res.data as Participant[])
+            }
+        } catch (err) {
+            console.error('Search exception:', err)
+            setError(err instanceof Error ? err.message : 'Search failed. Please try again.')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }, [eventCode])
 
     // Auto-search effect - using debounce pattern that avoids direct setState in effect body

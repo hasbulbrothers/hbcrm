@@ -1,9 +1,9 @@
 'use server'
 
-import { createAdminClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient } from '@/lib/supabase/server'
 
 export async function searchParticipant(query: string, eventCode: string, day?: number) {
-    const supabaseAdmin = createAdminClient()
+    const supabaseAdmin = await createClient()
 
     // Normalize query (remove non-digits for phone, trim for name)
     const isPhone = /^\d+$/.test(query.replace(/\D/g, ''))
