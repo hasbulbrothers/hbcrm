@@ -19,7 +19,10 @@ export async function exportParticipants(
         .order('created_at', { ascending: false })
 
     if (query) {
-        dbQuery = dbQuery.or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
+        const safe = query.replace(/[,()%"*\\]/g, '').trim()
+        if (safe) {
+            dbQuery = dbQuery.or(`name.ilike.%${safe}%,phone.ilike.%${safe}%`)
+        }
     }
 
     if (eventCode) {

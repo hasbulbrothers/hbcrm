@@ -81,12 +81,25 @@ export default function ParticipantsPage() {
 
     const loadData = async () => {
         setLoading(true)
-        const res = await getParticipants(page, 20, search, selectedSeminar, startDate, endDate, selectedNiche, selectedCloseBy, selectedState)
-        if (res.data) {
-            setData(res.data)
-            setCount(res.count || 0)
+        try {
+            const res = await getParticipants(page, 20, search, selectedSeminar, startDate, endDate, selectedNiche, selectedCloseBy, selectedState)
+            if (res.error) {
+                console.error('Search error:', res.error)
+                alert(`Search failed: ${res.error}`)
+                setData([])
+                setCount(0)
+            } else {
+                setData(res.data || [])
+                setCount(res.count || 0)
+            }
+        } catch (err) {
+            console.error('Search exception:', err)
+            alert('Search failed. Check console for details.')
+            setData([])
+            setCount(0)
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     const loadSeminars = async () => {
