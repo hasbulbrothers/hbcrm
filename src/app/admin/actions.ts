@@ -78,14 +78,15 @@ export async function getSeminars() {
     const { data, error } = await supabase
         .from('participants')
         .select('event_code')
-        .order('event_code')
+        .not('event_code', 'is', null)
+        .not('event_code', 'eq', '')
 
     if (error) {
         return { success: false, error: error.message }
     }
 
-    // Get unique event codes
-    const uniqueEvents = [...new Set(data?.map(p => p.event_code).filter(Boolean))]
+    // Get unique event codes, filter out any nulls/empty, and sort
+    const uniqueEvents = [...new Set(data?.map(p => p.event_code).filter(Boolean))].sort() as string[]
 
     return { success: true, events: uniqueEvents }
 }
