@@ -34,12 +34,34 @@ export async function middleware(request: NextRequest) {
         }
     )
 
+    const isAdmin = request.nextUrl.pathname.startsWith('/admin')
+    const isApi = request.nextUrl.pathname.startsWith('/api')
+
+    if (!isAdmin && !isApi) {
+        return response
+    }
+
     const {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (request.nextUrl.pathname.startsWith('/admin') && !user) {
+    if (!user) {
+        if (isApi) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
         return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    if (isAdmin && user) {
+        const { data: userRole } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .single()
+
+        if (!userRole || (userRole.role !== 'admin' && userRole.role !== 'staff')) {
+            return NextResponse.redirect(new URL('/login', request.url))
+        }
     }
 
     return response

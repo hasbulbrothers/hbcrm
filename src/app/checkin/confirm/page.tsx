@@ -48,24 +48,27 @@ function ConfirmContent() {
             router.push('/checkin')
             return
         }
-        const res = await getParticipantById(participantId)
-        if (res.data) {
-            const p = res.data as Participant
-            setParticipant(p)
+        try {
+            const res = await getParticipantById(participantId)
+            if (res.data) {
+                const p = res.data as Participant
+                setParticipant(p)
 
-            // Check if already checked in for this day
-            const existingCheckin = p.checkins?.find(c => c.day === day)
-            if (existingCheckin) {
-                setIsUpdateMode(true)
-                setIsAttending(true)
-                setAttendCount(existingCheckin.attend_count)
-                // For paid tickets, set the count to general by default
-                setGeneralCount(existingCheckin.attend_count)
+                const existingCheckin = p.checkins?.find(c => c.day === day)
+                if (existingCheckin) {
+                    setIsUpdateMode(true)
+                    setIsAttending(true)
+                    setAttendCount(existingCheckin.attend_count)
+                    setGeneralCount(existingCheckin.attend_count)
+                }
+            } else {
+                setError(res.error || 'Participant not found.')
             }
-        } else {
-            setError('Participant not found.')
+        } catch {
+            setError('Failed to load participant. Please try again.')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }, [participantId, router, day])
 
     useEffect(() => {
