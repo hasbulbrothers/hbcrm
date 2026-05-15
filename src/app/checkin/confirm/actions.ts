@@ -2,7 +2,13 @@
 
 import { createAdminClient } from '@/lib/supabase/server'
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function getParticipantById(id: string) {
+    if (!UUID_REGEX.test(id)) {
+        return { error: 'Invalid participant ID' }
+    }
+
     const supabase = createAdminClient()
     const { data, error } = await supabase
         .from('participants')
@@ -11,8 +17,7 @@ export async function getParticipantById(id: string) {
         .single()
 
     if (error) {
-        console.error('Error fetching participant:', error)
-        return { error: error.message }
+        return { error: 'Participant not found' }
     }
 
     return { data }

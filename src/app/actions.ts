@@ -1,42 +1,53 @@
 'use server'
 
-import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function searchParticipant(query: string, eventCode: string, day?: number) {
-    const supabaseAdmin = await createClient()
+    const supabase = createAdminClient()
 
-    // Normalize query (remove non-digits for phone, trim for name)
-    const isPhone = /^\d+$/.test(query.replace(/\D/g, ''))
+    const safe = query.replace(/[,()%"*\\';.]/g, '').trim()
+    if (!safe || !eventCode) {
+        return { data: [] }
+    }
 
-    let dbQuery = supabaseAdmin
+    const isPhone = /^\d+$/.test(safe.replace(/\D/g, ''))
+
+    let dbQuery = supabase
         .from('participants')
         .select('*, checkins(day, attend_count, status)')
         .ilike('event_code', eventCode)
 
     if (isPhone) {
-        // Basic normalization: remove non-digits
-        const cleanPhone = query.replace(/\D/g, '')
-        // Try to match partial? Or exact? PRD says "Padanan peserta berjaya".
-        // Usually phone is unique enough.
+        const cleanPhone = safe.replace(/\D/g, '')
         dbQuery = dbQuery.ilike('phone', `%${cleanPhone}%`)
     } else {
-        dbQuery = dbQuery.ilike('name', `%${query}%`)
+        dbQuery = dbQuery.ilike('name', `%${safe}%`)
     }
 
     const { data, error } = await dbQuery
 
     if (error) {
-        console.error('Search Error:', error)
-        return { error: error.message }
+        return { error: 'Search failed' }
     }
 
     return { data }
 }
 
 export async function submitCheckIn(participantId: string, ignoredEventCode: string, day: number, attendCount: number) {
+    if (!UUID_REGEX.test(participantId)) {
+        return { error: 'Invalid participant ID' }
+    }
+    if (day !== 1 && day !== 2) {
+        return { error: 'Invalid day' }
+    }
+    if (!Number.isInteger(attendCount) || attendCount < 1 || attendCount > 100) {
+        return { error: 'Invalid attend count' }
+    }
+
     const supabaseAdmin = createAdminClient()
 
-    // 1. Fetch the correct event_code from the participant to ensure consistency
     const { data: participant, error: pError } = await supabaseAdmin
         .from('participants')
         .select('event_code')
@@ -50,7 +61,7 @@ export async function submitCheckIn(participantId: string, ignoredEventCode: str
     const { data, error } = await supabaseAdmin
         .from('checkins')
         .insert({
-            event_code: participant.event_code, // Use the DB source of truth
+            event_code: participant.event_code,
             day: day,
             participant_id: participantId,
             attend_count: attendCount,
@@ -60,18 +71,26 @@ export async function submitCheckIn(participantId: string, ignoredEventCode: str
         .single()
 
     if (error) {
-        // Check for duplicate constraint
-        if (error.code === '23505') { // unique violation
+        if (error.code === '23505') {
             return { error: 'Already checked in for today.' }
         }
-        return { error: error.message }
+        return { error: 'Check-in failed' }
     }
 
     return { success: true, data }
 }
 
-// Update attendance count for existing check-in
 export async function updateCheckIn(participantId: string, day: number, attendCount: number) {
+    if (!UUID_REGEX.test(participantId)) {
+        return { error: 'Invalid participant ID' }
+    }
+    if (day !== 1 && day !== 2) {
+        return { error: 'Invalid day' }
+    }
+    if (!Number.isInteger(attendCount) || attendCount < 1 || attendCount > 100) {
+        return { error: 'Invalid attend count' }
+    }
+
     const supabaseAdmin = createAdminClient()
 
     const { data, error } = await supabaseAdmin
@@ -83,8 +102,7 @@ export async function updateCheckIn(participantId: string, day: number, attendCo
         .single()
 
     if (error) {
-        console.error('Update Error:', error)
-        return { error: error.message }
+        return { error: 'Update failed' }
     }
 
     return { success: true, data }
