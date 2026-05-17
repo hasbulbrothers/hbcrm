@@ -3,8 +3,6 @@
 import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getParticipantById } from './actions'
 import { submitCheckIn, updateCheckIn } from '../../actions'
 
@@ -34,14 +32,14 @@ function ConfirmContent() {
 
     const [participant, setParticipant] = useState<Participant | null>(null)
     const [loading, setLoading] = useState(true)
-    const [isAttending, setIsAttending] = useState(false)
-    const [attendCount, setAttendCount] = useState(1) // For sponsor tickets
-    const [generalCount, setGeneralCount] = useState(0) // For paid tickets - General
-    const [vipCount, setVipCount] = useState(0) // For paid tickets - VIP
+    const [attendCount, setAttendCount] = useState(1)
+    const [generalCount, setGeneralCount] = useState(1)
+    const [vipCount, setVipCount] = useState(0)
     const [submitting, setSubmitting] = useState(false)
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState('')
-    const [isUpdateMode, setIsUpdateMode] = useState(false) // Track if updating existing check-in
+    const [isUpdateMode, setIsUpdateMode] = useState(false)
+    const [showCheck, setShowCheck] = useState(false)
 
     const fetchParticipant = useCallback(async () => {
         if (!participantId) {
@@ -57,51 +55,44 @@ function ConfirmContent() {
                 const existingCheckin = p.checkins?.find(c => c.day === day)
                 if (existingCheckin) {
                     setIsUpdateMode(true)
-                    setIsAttending(true)
                     setAttendCount(existingCheckin.attend_count)
                     setGeneralCount(existingCheckin.attend_count)
                 }
             } else {
-                setError(res.error || 'Participant not found.')
+                setError(res.error || 'Peserta tidak dijumpai.')
             }
         } catch {
-            setError('Failed to load participant. Please try again.')
+            setError('Gagal memuatkan data. Sila cuba semula.')
         } finally {
             setLoading(false)
         }
     }, [participantId, router, day])
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchParticipant()
     }, [fetchParticipant])
 
-    const handleSubmit = async () => {
-        if (!isAttending) {
-            setError('Please confirm your attendance.')
-            return
+    useEffect(() => {
+        if (success) {
+            setTimeout(() => setShowCheck(true), 100)
         }
+    }, [success])
 
-        // Calculate total based on ticket type
-        const isSponsor = participant?.ticket_type?.toLowerCase().includes('sponsor')
-        const totalAttendance = isSponsor ? attendCount : (generalCount + vipCount)
+    const isSponsor = participant?.ticket_type?.toLowerCase().includes('sponsor')
+    const totalAttendance = isSponsor ? attendCount : (generalCount + vipCount)
 
+    const handleSubmit = async () => {
         if (totalAttendance === 0) {
-            setError('Please select at least 1 attendee.')
+            setError('Sila pilih sekurang-kurangnya 1 peserta.')
             return
         }
 
         setSubmitting(true)
         setError('')
 
-        let res
-        if (isUpdateMode) {
-            // Update existing check-in
-            res = await updateCheckIn(participantId, day, totalAttendance)
-        } else {
-            // New check-in
-            res = await submitCheckIn(participantId, eventCode, day, totalAttendance)
-        }
+        const res = isUpdateMode
+            ? await updateCheckIn(participantId, day, totalAttendance)
+            : await submitCheckIn(participantId, eventCode, day, totalAttendance)
 
         if (res.error) {
             setError(res.error)
@@ -112,254 +103,247 @@ function ConfirmContent() {
         }
     }
 
+    // Loading skeleton
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-black text-white">
-                <p>Loading...</p>
+            <div className="min-h-screen bg-black">
+                <div className="max-w-md mx-auto px-4 pt-20">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-6 bg-zinc-800 rounded w-1/3 mx-auto" />
+                        <div className="h-4 bg-zinc-800 rounded w-1/4 mx-auto" />
+                        <div className="mt-6 rounded-xl bg-zinc-900 border border-zinc-800 p-6">
+                            <div className="h-6 bg-zinc-800 rounded w-2/3 mb-4" />
+                            <div className="h-4 bg-zinc-800 rounded w-1/2 mb-2" />
+                            <div className="h-4 bg-zinc-800 rounded w-1/3 mb-2" />
+                            <div className="h-4 bg-zinc-800 rounded w-2/3" />
+                        </div>
+                        <div className="h-12 bg-zinc-800 rounded-xl" />
+                    </div>
+                </div>
             </div>
         )
     }
 
+    // Success screen with animation
     if (success) {
-        const isSponsor = participant?.ticket_type?.toLowerCase().includes('sponsor')
-        const totalAttendance = isSponsor ? attendCount : (generalCount + vipCount)
-
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
-                <Card className={`w-full max-w-md text-center border-none ${isSponsor ? 'bg-zinc-900 border-zinc-800' : 'bg-green-800 border-green-700'}`}>
-                    <CardHeader>
-                        <CardTitle className="text-3xl font-bold text-white">✓ Congratulations!</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <p className={`text-xl ${isSponsor ? 'text-white' : 'text-green-100'}`}>Check-in Successful</p>
-                        <div className={`${isSponsor ? 'bg-zinc-800' : 'bg-green-700'} p-4 rounded text-left text-white`}>
-                            <p><strong>Name:</strong> {participant?.name}</p>
-                            <p><strong>Tiket:</strong> {participant?.ticket_type || 'General'}</p>
-                            <p><strong>Day:</strong> Day {day}</p>
+            <div className="min-h-screen bg-black flex items-center justify-center p-4">
+                <div className="w-full max-w-md text-center">
+                    {/* Animated Checkmark */}
+                    <div className={`mx-auto mb-6 w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${showCheck ? 'scale-100 opacity-100' : 'scale-50 opacity-0'} ${isSponsor ? 'bg-blue-600' : 'bg-green-600'}`}>
+                        <svg className={`w-12 h-12 text-white transition-all duration-300 delay-300 ${showCheck ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
 
-                            {/* Attendance Breakdown */}
-                            <div className="mt-3 pt-3 border-t border-white/20">
-                                <p className="font-semibold mb-2">Kehadiran:</p>
-                                {isSponsor ? (
-                                    <p>Sponsor: <strong>{attendCount}</strong> orang</p>
-                                ) : (
-                                    <div className="space-y-1">
-                                        {generalCount > 0 && (
-                                            <p>Tiket General: <strong>{generalCount}</strong> orang</p>
-                                        )}
-                                        {vipCount > 0 && (
-                                            <p>Tiket VIP: <strong>{vipCount}</strong> orang</p>
-                                        )}
-                                        <p className="text-sm opacity-80 mt-1">Jumlah: <strong>{totalAttendance}</strong> orang</p>
-                                    </div>
-                                )}
+                    <h2 className={`text-3xl font-bold text-white mb-2 transition-all duration-500 delay-200 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                        {isUpdateMode ? 'Dikemaskini!' : 'Berjaya!'}
+                    </h2>
+                    <p className={`text-zinc-400 mb-8 transition-all duration-500 delay-300 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                        Check-in telah {isUpdateMode ? 'dikemaskini' : 'disahkan'}
+                    </p>
+
+                    <div className={`rounded-xl ${isSponsor ? 'bg-zinc-900 border border-zinc-800' : 'bg-green-950/40 border border-green-800/40'} p-5 text-left mb-6 transition-all duration-500 delay-400 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                        <p className="font-semibold text-white text-lg">{participant?.name}</p>
+                        <div className="mt-3 space-y-1.5 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500">Tiket</span>
+                                <span className="text-zinc-300">{participant?.ticket_type || 'General'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500">Hari</span>
+                                <span className="text-zinc-300">Hari {day}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-zinc-500">Kehadiran</span>
+                                <span className="text-white font-semibold">{totalAttendance} orang</span>
                             </div>
                         </div>
+                    </div>
 
-                        {isSponsor ? (
-                            <div className="bg-blue-600 p-4 rounded text-white mt-4">
-                                <p className="font-semibold text-lg">Terima kasih untuk pendaftaran. </p>
-                                <p className="mt-2 text-sm">Untuk tiket sponsor tiada sebarang workbook dan bonus. Boleh terus naik ke level 20.</p>
-                            </div>
-                        ) : (
-                            <div className="bg-yellow-500 p-4 rounded text-black mt-4 space-y-2">
-                                <p className="font-semibold text-lg">📖 Sila ambil/claim workbook dan bonus lain di meja pendaftaran.</p>
-                                <p className="text-sm">Sila tunjukkan bukti pendaftaran ini kepada staff kami di meja.</p>
-                            </div>
-                        )}
+                    {isSponsor ? (
+                        <div className={`rounded-xl bg-blue-950/30 border border-blue-800/30 p-4 mb-6 text-left transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                            <p className="text-blue-300 text-sm font-medium">Tiket Sponsor</p>
+                            <p className="text-blue-300/70 text-sm mt-1">Tiada workbook dan bonus. Boleh terus naik ke level 20.</p>
+                        </div>
+                    ) : (
+                        <div className={`rounded-xl bg-yellow-950/30 border border-yellow-800/30 p-4 mb-6 text-left transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                            <p className="text-yellow-300 text-sm font-medium">Sila ambil workbook & bonus</p>
+                            <p className="text-yellow-300/70 text-sm mt-1">Tunjukkan bukti check-in ini kepada staff di meja pendaftaran.</p>
+                        </div>
+                    )}
 
-                        <Button
-                            onClick={() => router.push(`/checkin?day=${day}&event=${eventCode}`)}
-                            className={`w-full mt-4 ${isSponsor ? 'bg-zinc-700 hover:bg-zinc-600 text-white' : 'bg-white text-green-900 hover:bg-gray-100'}`}
-                        >
-                            Done
-                        </Button>
-                    </CardContent>
-                </Card>
+                    <button
+                        onClick={() => router.push(`/checkin?day=${day}&event=${eventCode}`)}
+                        className={`w-full h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-medium transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+                    >
+                        Selesai
+                    </button>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
-            <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white">
-                <CardHeader>
-                    <div className="flex justify-center mb-4">
-                        <Image src="/logo.png" alt="9X Growth Logo" width={150} height={80} className="object-contain" />
+        <div className="min-h-screen bg-black">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-zinc-800">
+                <div className="max-w-md mx-auto px-4 py-4 flex items-center gap-3">
+                    <button onClick={() => router.back()} className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div className="flex-1">
+                        <h1 className="text-white font-semibold text-sm">
+                            {isUpdateMode ? 'Kemaskini Kehadiran' : 'Sahkan Kehadiran'}
+                        </h1>
+                        <p className="text-zinc-500 text-xs">Hari {day}</p>
                     </div>
-                    <CardTitle className="text-center text-white">
-                        {isUpdateMode ? '✏️ Update Attendance' : 'Confirm Attendance'}
-                    </CardTitle>
-                    <p className="text-center text-gray-400">Day {day}</p>
                     {isUpdateMode && (
-                        <p className="text-center text-yellow-500 text-sm mt-1">
-                            Already checked in - updating attendance count
-                        </p>
+                        <span className="text-xs px-2 py-1 rounded-full bg-yellow-900/30 text-yellow-500 border border-yellow-800/30">
+                            Sudah check-in
+                        </span>
                     )}
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Participant Details */}
-                    <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
-                        <p className="text-xl font-bold text-white">{participant?.name}</p>
-                        <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-                            <div>
-                                <p className="text-gray-400">Phone</p>
-                                <p className="text-white">{participant?.phone}</p>
+                </div>
+            </div>
+
+            <div className="max-w-md mx-auto px-4 pt-6 pb-32">
+                {/* Participant Card */}
+                <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5 mb-6">
+                    <p className="text-xl font-bold text-white">{participant?.name}</p>
+                    <p className="text-zinc-500 text-sm mt-1">{participant?.phone}</p>
+
+                    <div className="mt-4 pt-4 border-t border-zinc-800 space-y-2.5">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-zinc-500">Tiket</span>
+                            <div className="text-right">
+                                {(participant?.ticket_type || 'General').split(/(?=\d+\.\s)/).filter(Boolean).map((item, idx) => (
+                                    <p key={idx} className="text-zinc-300 leading-tight">{item.trim()}</p>
+                                ))}
                             </div>
-                            <div className="col-span-2">
-                                <p className="text-gray-400">Ticket</p>
-                                <div className="text-white text-sm space-y-1">
-                                    {(participant?.ticket_type || 'General').split(/(?=\d+\.\s)/).filter(Boolean).map((item, idx) => (
-                                        <p key={idx} className="leading-tight">{item.trim()}</p>
+                        </div>
+                        {participant?.email && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Emel</span>
+                                <span className="text-zinc-300">{participant.email}</span>
+                            </div>
+                        )}
+                        {participant?.niche && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Niche</span>
+                                <span className="text-zinc-300">{participant.niche}</span>
+                            </div>
+                        )}
+                        {participant?.state && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500">Negeri</span>
+                                <span className="text-zinc-300">{participant.state}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Attendance Counter — no toggle needed */}
+                <div className="mb-6">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Bilangan Kehadiran</p>
+
+                    {isSponsor ? (
+                        <div className="grid grid-cols-5 gap-2">
+                            {[1, 2, 3, 4, 5].map(num => (
+                                <button
+                                    key={num}
+                                    onClick={() => setAttendCount(num)}
+                                    className={`h-14 rounded-xl text-lg font-semibold transition-all ${attendCount === num
+                                        ? 'bg-yellow-600 text-white scale-105 shadow-lg shadow-yellow-600/20'
+                                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                    }`}
+                                >
+                                    {num}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm text-zinc-400 mb-2">Tiket General</p>
+                                <div className="grid grid-cols-6 gap-2">
+                                    {[0, 1, 2, 3, 4, 5].map(num => (
+                                        <button
+                                            key={num}
+                                            onClick={() => setGeneralCount(num)}
+                                            className={`h-12 rounded-xl text-base font-semibold transition-all ${generalCount === num
+                                                ? 'bg-blue-600 text-white scale-105 shadow-lg shadow-blue-600/20'
+                                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                            }`}
+                                        >
+                                            {num}
+                                        </button>
                                     ))}
                                 </div>
                             </div>
-                            {participant?.email && (
-                                <div className="col-span-2">
-                                    <p className="text-gray-400">Email</p>
-                                    <p className="text-white">{participant?.email}</p>
+                            <div>
+                                <p className="text-sm text-zinc-400 mb-2">Tiket VIP</p>
+                                <div className="grid grid-cols-6 gap-2">
+                                    {[0, 1, 2, 3, 4, 5].map(num => (
+                                        <button
+                                            key={num}
+                                            onClick={() => setVipCount(num)}
+                                            className={`h-12 rounded-xl text-base font-semibold transition-all ${vipCount === num
+                                                ? 'bg-purple-600 text-white scale-105 shadow-lg shadow-purple-600/20'
+                                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                            }`}
+                                        >
+                                            {num}
+                                        </button>
+                                    ))}
                                 </div>
-                            )}
-                            {participant?.niche && (
-                                <div>
-                                    <p className="text-gray-400">Niche</p>
-                                    <p className="text-white">{participant?.niche}</p>
-                                </div>
-                            )}
-                            {participant?.state && (
-                                <div>
-                                    <p className="text-gray-400">State</p>
-                                    <p className="text-white">{participant?.state}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Attendance Toggle */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300">Attendance</label>
-                        <div
-                            onClick={() => setIsAttending(!isAttending)}
-                            className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-all ${isAttending
-                                ? 'bg-green-600 border-2 border-green-400'
-                                : 'bg-zinc-800 border-2 border-zinc-700 hover:border-zinc-600'
-                                }`}
-                        >
-                            <span className="text-lg font-semibold text-white">
-                                {isAttending ? '✓ I am Attending' : 'Click to confirm attendance'}
-                            </span>
-                            <div className={`w-14 h-8 rounded-full p-1 transition-all ${isAttending ? 'bg-green-400' : 'bg-zinc-600'}`}>
-                                <div className={`w-6 h-6 rounded-full bg-white transition-transform ${isAttending ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+                                <span className="text-zinc-500 text-sm">Jumlah kehadiran</span>
+                                <span className="text-white text-xl font-bold">{generalCount + vipCount}</span>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Attendance Count */}
-                    {isAttending && (
-                        <div className="space-y-4">
-                            {/* Check if Sponsor - show single counter */}
-                            {participant?.ticket_type?.toLowerCase().includes('sponsor') ? (
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-300">Number of Attendees</label>
-                                    <div className="flex gap-3">
-                                        {[1, 2, 3, 4, 5].map(num => (
-                                            <Button
-                                                key={num}
-                                                variant={attendCount === num ? 'default' : 'outline'}
-                                                onClick={() => setAttendCount(num)}
-                                                className={`w-12 h-12 text-lg ${attendCount === num
-                                                    ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                                                    : 'bg-transparent border-zinc-600 text-gray-300 hover:bg-zinc-800'
-                                                    }`}
-                                            >
-                                                {num}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
-                                /* Paid tickets - show separate General and VIP counters */
-                                <>
-                                    {/* General Ticket Counter */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-300">Tiket General</label>
-                                        <div className="flex gap-3">
-                                            {[0, 1, 2, 3, 4, 5].map(num => (
-                                                <Button
-                                                    key={num}
-                                                    variant={generalCount === num ? 'default' : 'outline'}
-                                                    onClick={() => setGeneralCount(num)}
-                                                    className={`w-12 h-12 text-lg ${generalCount === num
-                                                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                                        : 'bg-transparent border-zinc-600 text-gray-300 hover:bg-zinc-800'
-                                                        }`}
-                                                >
-                                                    {num}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* VIP Ticket Counter */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-gray-300">Tiket VIP</label>
-                                        <div className="flex gap-3">
-                                            {[0, 1, 2, 3, 4, 5].map(num => (
-                                                <Button
-                                                    key={num}
-                                                    variant={vipCount === num ? 'default' : 'outline'}
-                                                    onClick={() => setVipCount(num)}
-                                                    className={`w-12 h-12 text-lg ${vipCount === num
-                                                        ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                                                        : 'bg-transparent border-zinc-600 text-gray-300 hover:bg-zinc-800'
-                                                        }`}
-                                                >
-                                                    {num}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Total Display */}
-                                    <div className="bg-zinc-800 p-3 rounded-lg text-center">
-                                        <span className="text-gray-400 text-sm">Total Attendees: </span>
-                                        <span className="text-white font-bold text-lg">{generalCount + vipCount}</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
                     )}
+                </div>
 
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-2">
-                        <Button
-                            variant="outline"
-                            className="w-1/3 border-zinc-600 text-gray-300 hover:bg-zinc-800 hover:text-white"
-                            onClick={() => router.back()}
-                        >
-                            Back
-                        </Button>
-                        <Button
-                            className={`w-2/3 text-white ${isAttending
-                                ? (isUpdateMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700')
-                                : 'bg-zinc-700 cursor-not-allowed'}`}
-                            onClick={handleSubmit}
-                            disabled={submitting || !isAttending}
-                        >
-                            {submitting ? 'Processing...' : (isUpdateMode ? 'Update Attendance' : 'Confirm Check-in')}
-                        </Button>
+                {/* Error */}
+                {error && (
+                    <div className="rounded-xl bg-red-950/30 border border-red-900/50 p-4 mb-6">
+                        <p className="text-red-400 text-sm">{error}</p>
                     </div>
-                </CardContent>
-            </Card>
+                )}
+
+                {/* Submit */}
+                <button
+                    onClick={handleSubmit}
+                    disabled={submitting || totalAttendance === 0}
+                    className={`w-full h-14 rounded-xl font-semibold text-base transition-all ${totalAttendance === 0
+                        ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                        : isUpdateMode
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-[0.98]'
+                            : 'bg-green-600 hover:bg-green-700 text-white active:scale-[0.98]'
+                    }`}
+                >
+                    {submitting ? (
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Memproses...</span>
+                        </div>
+                    ) : (
+                        isUpdateMode ? `Kemaskini (${totalAttendance} orang)` : `Sahkan Check-in (${totalAttendance} orang)`
+                    )}
+                </button>
+            </div>
         </div>
     )
 }
 
 export default function ConfirmPage() {
     return (
-        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-black text-white">Loading...</div>}>
+        <Suspense fallback={
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
             <ConfirmContent />
         </Suspense>
     )

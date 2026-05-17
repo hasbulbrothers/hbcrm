@@ -3,10 +3,6 @@
 import { useState, Suspense, useEffect, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { searchParticipant } from '../actions'
 
 interface CheckIn {
@@ -34,196 +30,236 @@ function CheckInContent() {
     const [participants, setParticipants] = useState<Participant[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [searched, setSearched] = useState(false)
 
     const handleSearch = useCallback(async (searchQuery: string) => {
-        if (!searchQuery) return
+        if (!searchQuery || searchQuery.length < 3) return
 
         setLoading(true)
         setError('')
         setParticipants([])
+        setSearched(true)
 
         try {
             const res = await searchParticipant(searchQuery, eventCode)
-
             if (res.error) {
                 setError(res.error)
             } else if (res.data) {
                 setParticipants(res.data as Participant[])
             }
-        } catch (err) {
-            console.error('Search exception:', err)
-            setError(err instanceof Error ? err.message : 'Search failed. Please try again.')
+        } catch {
+            setError('Carian gagal. Sila cuba semula.')
         } finally {
             setLoading(false)
         }
     }, [eventCode])
 
-    // Auto-search effect - using debounce pattern that avoids direct setState in effect body
     useEffect(() => {
-        // Reset participants when query becomes too short
-        if (query.length < 8) {
+        if (query.length < 3) {
             if (participants.length > 0) {
-                // Use functional update to avoid triggering re-render loop
-                setParticipants(prev => prev.length > 0 ? [] : prev)
+                setParticipants([])
+                setSearched(false)
             }
             return
         }
-
         const timer = setTimeout(() => {
             handleSearch(query)
-        }, 500)
+        }, 400)
         return () => clearTimeout(timer)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [query, handleSearch])
 
     const handleSelectParticipant = (participant: Participant) => {
-        // Navigate to confirm page with participant ID
         router.push(`/checkin/confirm?id=${participant.id}&day=${day}&event=${eventCode}`)
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
-            <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white">
-                <CardHeader>
-                    <div className="flex justify-center mb-4">
-                        <Image src="/logo.png" alt="9X Growth Logo" width={150} height={80} className="object-contain" />
-                    </div>
-                    <CardTitle className="text-center text-white">Check-In Event</CardTitle>
-                    <p className="text-center text-gray-400">Day {day} | Code: {eventCode}</p>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={(e) => { e.preventDefault(); handleSearch(query) }} className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Search Participant (Name / Phone)</label>
-                            <Input
-                                placeholder="Enter name or phone..."
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500"
-                            />
+        <div className="min-h-screen bg-black">
+            {/* Header */}
+            <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-zinc-800">
+                <div className="max-w-md mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <Image src="/logo.png" alt="Logo" width={100} height={50} className="object-contain" />
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-500 uppercase tracking-wider">Hari {day}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                         </div>
-                        <Button type="submit" className="w-full h-12 text-lg bg-green-600 hover:bg-green-700 text-white" disabled={loading}>
-                            {loading ? 'Searching...' : 'Search'}
-                        </Button>
+                    </div>
+                </div>
+            </div>
 
-                        {/* Note about using buyer's info */}
-                        <p className="text-xs text-yellow-400 text-center mt-3">
-                            *Sila masukkan nama atau no telefon pembeli tiket bukan details peserta. Nama atau no telefon yang digunakan di resit/invois. Selepas masukkan data pembeli akan keluar berapa total tiket yang tuan/puan beli.
+            <div className="max-w-md mx-auto px-4 pt-6 pb-32">
+                {/* Search */}
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-white mb-1">Check-In Peserta</h1>
+                    <p className="text-zinc-500 text-sm mb-4">Cari nama atau no telefon pembeli tiket</p>
+
+                    <div className="relative">
+                        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="Masukkan nama atau no telefon..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            className="w-full h-12 pl-11 pr-4 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600 transition-all text-base"
+                            autoFocus
+                        />
+                        {loading && (
+                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+                                <div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        )}
+                    </div>
+
+                    <p className="text-xs text-yellow-500/80 mt-2">
+                        *Guna nama atau no telefon dari resit/invois pembelian tiket
+                    </p>
+                </div>
+
+                {/* Receipt Example */}
+                <button
+                    onClick={() => {
+                        const modal = document.getElementById('receipt-modal')
+                        if (modal) modal.classList.remove('hidden')
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800/50 text-zinc-400 hover:text-zinc-300 hover:border-zinc-700 transition-all mb-6 text-sm"
+                >
+                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Lihat contoh resit
+                </button>
+
+                {/* Loading Skeleton */}
+                {loading && (
+                    <div className="space-y-3">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="rounded-xl bg-zinc-900 border border-zinc-800 p-4 animate-pulse">
+                                <div className="h-5 bg-zinc-800 rounded w-2/3 mb-3" />
+                                <div className="h-3 bg-zinc-800 rounded w-1/2 mb-2" />
+                                <div className="h-3 bg-zinc-800 rounded w-1/3" />
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Results */}
+                {!loading && searched && participants.length > 0 && (
+                    <div>
+                        <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">
+                            {participants.length} peserta dijumpai
                         </p>
-
-                        {/* Receipt example button */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full mt-2 border-zinc-600 text-gray-300 hover:bg-zinc-800 hover:text-white"
-                            onClick={() => {
-                                const modal = document.getElementById('receipt-modal')
-                                if (modal) modal.classList.remove('hidden')
-                            }}
-                        >
-                            📄 Lihat Contoh Resit
-                        </Button>
-                    </form>
-
-                    {/* Receipt Example Modal */}
-                    <div
-                        id="receipt-modal"
-                        className="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-                        onClick={(e) => {
-                            if (e.target === e.currentTarget) {
-                                e.currentTarget.classList.add('hidden')
-                            }
-                        }}
-                    >
-                        <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-auto">
-                            <div className="p-4 border-b flex justify-between items-center">
-                                <h3 className="font-bold text-gray-900">Contoh Resit</h3>
-                                <button
-                                    className="text-gray-500 hover:text-gray-700 text-2xl"
-                                    onClick={() => {
-                                        const modal = document.getElementById('receipt-modal')
-                                        if (modal) modal.classList.add('hidden')
-                                    }}
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            <div className="p-4">
-                                <Image
-                                    src="/receipt-example.png"
-                                    alt="Contoh Resit"
-                                    width={500}
-                                    height={600}
-                                    className="w-full h-auto"
-                                />
-                                <p className="text-sm text-gray-600 mt-4 text-center">
-                                    Guna nama atau no telefon dari bahagian &quot;KEPADA&quot; dalam resit anda.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {error && <Alert variant="destructive" className="mt-4 bg-red-900 border-red-800 text-white"><AlertTitle>Error</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
-
-                    {participants.length > 0 && (
-                        <div className="mt-6 space-y-3">
-                            <p className="font-semibold text-sm text-gray-400">Select Your Name:</p>
+                        <div className="space-y-2.5">
                             {participants.map((p) => {
-                                // Check attendance for current day
                                 const todayCheckin = p.checkins?.find(c => c.day === day)
+                                const otherDayCheckin = p.checkins?.find(c => c.day !== day)
                                 const isCheckedIn = !!todayCheckin
                                 const attendCount = todayCheckin?.attend_count || 0
 
                                 return (
-                                    <div
+                                    <button
                                         key={p.id}
                                         onClick={() => handleSelectParticipant(p)}
-                                        className={`bg-zinc-800 border rounded-lg p-4 cursor-pointer transition-all ${isCheckedIn
-                                            ? 'border-green-600 bg-zinc-800/80 hover:bg-zinc-700'
-                                            : 'border-zinc-700 hover:bg-zinc-700 hover:border-green-600'
-                                            }`}
+                                        className={`w-full text-left rounded-xl p-4 transition-all active:scale-[0.98] ${isCheckedIn
+                                            ? 'bg-green-950/40 border border-green-800/60 hover:border-green-700'
+                                            : 'bg-zinc-900 border border-zinc-800 hover:border-zinc-600'
+                                        }`}
                                     >
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex-1">
-                                                <p className="font-bold text-lg text-white">{p.name}</p>
-                                                <div className="text-sm text-gray-400 mt-1 space-y-1">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {(p.ticket_type || 'General').split(/(?=\d+\.\s)/).filter(Boolean).map((item, idx) => (
-                                                            <span key={idx} className="block">{item.trim()}</span>
-                                                        ))}
-                                                    </div>
-                                                    <p>{p.phone}</p>
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-white text-base truncate">{p.name}</p>
+                                                <p className="text-zinc-500 text-sm mt-0.5">{p.phone}</p>
+                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                    {(p.ticket_type || 'General').split(/(?=\d+\.\s)/).filter(Boolean).map((item, idx) => (
+                                                        <span key={idx} className="inline-block text-xs px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">
+                                                            {item.trim()}
+                                                        </span>
+                                                    ))}
                                                 </div>
-                                                {p.email && <p className="text-xs text-gray-500 mt-1">{p.email}</p>}
                                             </div>
-
-                                            {/* Attendance Status Badge */}
-                                            <div className="flex flex-col items-end gap-2">
+                                            <div className="shrink-0 flex flex-col items-end gap-1.5">
                                                 {isCheckedIn ? (
-                                                    <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                                                        ✓ Hadir ({attendCount} orang)
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-green-600 text-white">
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                                        Hadir ({attendCount})
                                                     </span>
                                                 ) : (
-                                                    <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded-full">
-                                                        Belum Hadir
+                                                    <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-500">
+                                                        Belum hadir
+                                                    </span>
+                                                )}
+                                                {otherDayCheckin && (
+                                                    <span className="text-xs text-yellow-500/70">
+                                                        Hari {otherDayCheckin.day} hadir
                                                     </span>
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
+                                    </button>
                                 )
                             })}
                         </div>
-                    )}
-                </CardContent>
-            </Card>
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {!loading && searched && participants.length === 0 && !error && (
+                    <div className="text-center py-12">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-900 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <p className="text-zinc-400 font-medium">Tiada peserta dijumpai</p>
+                        <p className="text-zinc-600 text-sm mt-1">Cuba semak nama atau no telefon dari resit</p>
+                    </div>
+                )}
+
+                {/* Error */}
+                {error && (
+                    <div className="rounded-xl bg-red-950/30 border border-red-900/50 p-4 mt-4">
+                        <p className="text-red-400 text-sm font-medium">Ralat</p>
+                        <p className="text-red-400/70 text-sm mt-0.5">{error}</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Receipt Modal */}
+            <div
+                id="receipt-modal"
+                className="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden')
+                }}
+            >
+                <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-auto">
+                    <div className="p-4 border-b flex justify-between items-center">
+                        <h3 className="font-bold text-gray-900">Contoh Resit</h3>
+                        <button className="text-gray-500 hover:text-gray-700 text-2xl leading-none" onClick={() => document.getElementById('receipt-modal')?.classList.add('hidden')}>
+                            &times;
+                        </button>
+                    </div>
+                    <div className="p-4">
+                        <Image src="/receipt-example.png" alt="Contoh Resit" width={500} height={600} className="w-full h-auto" />
+                        <p className="text-sm text-gray-600 mt-4 text-center">
+                            Guna nama atau no telefon dari bahagian &quot;KEPADA&quot; dalam resit anda.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
 
 export default function CheckInPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
             <CheckInContent />
         </Suspense>
     )

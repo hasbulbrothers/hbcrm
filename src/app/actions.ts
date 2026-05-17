@@ -1,11 +1,11 @@
 'use server'
 
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function searchParticipant(query: string, eventCode: string, day?: number) {
-    const supabase = createAdminClient()
+    const supabase = await createClient()
 
     const safe = query.replace(/[,()%"*\\';.]/g, '').trim()
     if (!safe || !eventCode) {
@@ -16,7 +16,7 @@ export async function searchParticipant(query: string, eventCode: string, day?: 
 
     let dbQuery = supabase
         .from('participants')
-        .select('*, checkins(day, attend_count, status)')
+        .select('id, name, phone, email, ticket_type, checkins(day, attend_count, status)')
         .ilike('event_code', eventCode)
 
     if (isPhone) {
@@ -29,7 +29,7 @@ export async function searchParticipant(query: string, eventCode: string, day?: 
     const { data, error } = await dbQuery
 
     if (error) {
-        return { error: 'Search failed' }
+        return { error: 'Carian gagal' }
     }
 
     return { data }
@@ -37,28 +37,28 @@ export async function searchParticipant(query: string, eventCode: string, day?: 
 
 export async function submitCheckIn(participantId: string, ignoredEventCode: string, day: number, attendCount: number) {
     if (!UUID_REGEX.test(participantId)) {
-        return { error: 'Invalid participant ID' }
+        return { error: 'ID peserta tidak sah' }
     }
     if (day !== 1 && day !== 2) {
-        return { error: 'Invalid day' }
+        return { error: 'Hari tidak sah' }
     }
-    if (!Number.isInteger(attendCount) || attendCount < 1 || attendCount > 100) {
-        return { error: 'Invalid attend count' }
+    if (!Number.isInteger(attendCount) || attendCount < 1 || attendCount > 10) {
+        return { error: 'Bilangan kehadiran tidak sah (maksimum 10)' }
     }
 
-    const supabaseAdmin = createAdminClient()
+    const supabase = await createClient()
 
-    const { data: participant, error: pError } = await supabaseAdmin
+    const { data: participant, error: pError } = await supabase
         .from('participants')
         .select('event_code')
         .eq('id', participantId)
         .single()
 
     if (pError || !participant) {
-        return { error: 'Participant not found.' }
+        return { error: 'Peserta tidak dijumpai.' }
     }
 
-    const { data, error } = await supabaseAdmin
+    const { error } = await supabase
         .from('checkins')
         .insert({
             event_code: participant.event_code,
@@ -67,43 +67,39 @@ export async function submitCheckIn(participantId: string, ignoredEventCode: str
             attend_count: attendCount,
             status: 'CONFIRMED'
         })
-        .select()
-        .single()
 
     if (error) {
         if (error.code === '23505') {
-            return { error: 'Already checked in for today.' }
+            return { error: 'Sudah check-in untuk hari ini.' }
         }
-        return { error: 'Check-in failed' }
+        return { error: 'Check-in gagal' }
     }
 
-    return { success: true, data }
+    return { success: true }
 }
 
 export async function updateCheckIn(participantId: string, day: number, attendCount: number) {
     if (!UUID_REGEX.test(participantId)) {
-        return { error: 'Invalid participant ID' }
+        return { error: 'ID peserta tidak sah' }
     }
     if (day !== 1 && day !== 2) {
-        return { error: 'Invalid day' }
+        return { error: 'Hari tidak sah' }
     }
-    if (!Number.isInteger(attendCount) || attendCount < 1 || attendCount > 100) {
-        return { error: 'Invalid attend count' }
+    if (!Number.isInteger(attendCount) || attendCount < 1 || attendCount > 10) {
+        return { error: 'Bilangan kehadiran tidak sah (maksimum 10)' }
     }
 
     const supabaseAdmin = createAdminClient()
 
-    const { data, error } = await supabaseAdmin
+    const { error } = await supabaseAdmin
         .from('checkins')
         .update({ attend_count: attendCount })
         .eq('participant_id', participantId)
         .eq('day', day)
-        .select()
-        .single()
 
     if (error) {
-        return { error: 'Update failed' }
+        return { error: 'Kemaskini gagal' }
     }
 
-    return { success: true, data }
+    return { success: true }
 }

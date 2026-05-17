@@ -66,18 +66,17 @@ alter table checkins enable row level security;
 alter table user_roles enable row level security;
 alter table seminar_stats enable row level security;
 
--- Policy: Allow anyone to read participants (for search/check-in)
-create policy "Enable read access for all users" on participants for select using (true);
+-- Policy: Participants — public can read (check-in search), auth only for write
+create policy "anon_read_participants" on participants for select using (true);
+create policy "auth_insert_participants" on participants for insert to authenticated with check (true);
+create policy "auth_update_participants" on participants for update to authenticated using (true);
+create policy "auth_delete_participants" on participants for delete to authenticated using (true);
 
--- Policy: Allow insert for participants (CSV import)
-create policy "Enable insert for all users" on participants for insert with check (true);
-
--- Policy: Allow update for participants (editable fields)
-create policy "Enable update for all users" on participants for update using (true);
-
--- Policy: Allow insert/update for checkins
-create policy "Enable insert for all users" on checkins for insert with check (true);
-create policy "Enable select for all users" on checkins for select using (true);
+-- Policy: Checkins — public can read & insert (check-in flow), auth only for update/delete
+create policy "anon_read_checkins" on checkins for select using (true);
+create policy "anon_insert_checkins" on checkins for insert with check (true);
+create policy "auth_update_checkins" on checkins for update to authenticated using (true);
+create policy "auth_delete_checkins" on checkins for delete to authenticated using (true);
 
 -- Policy: User roles - authenticated users can read
 create policy "Enable read for authenticated" on user_roles for select to authenticated using (true);
