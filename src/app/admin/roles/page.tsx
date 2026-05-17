@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Users, Plus, Trash2, X } from 'lucide-react'
 import { getAllUsers, changeUserRole, addUserWithRole, deleteUserRole } from './actions'
+import { toast } from 'sonner'
 
 interface User {
     id: string
@@ -53,12 +54,12 @@ export default function RolesPage() {
         const res = await addUserWithRole(newEmail, newRole)
 
         if (res.success) {
-            setMessage(res.message || 'Jemputan berjaya dihantar!')
+            toast.success(res.message || 'Jemputan berjaya dihantar!')
             setNewEmail('')
             setShowCreateForm(false)
             loadUsers()
         } else {
-            setMessage(`Error: ${res.error}`)
+            toast.error(res.error || 'Gagal menghantar jemputan')
         }
 
         setCreating(false)
@@ -67,9 +68,10 @@ export default function RolesPage() {
     async function handleRoleChange(userId: string, newRole: string) {
         const res = await changeUserRole(userId, newRole as 'admin' | 'general')
         if (res.success) {
+            toast.success('Role dikemaskini')
             loadUsers()
         } else {
-            setMessage(`Error: ${res.error}`)
+            toast.error(res.error || 'Gagal kemaskini role')
         }
     }
 
@@ -78,14 +80,36 @@ export default function RolesPage() {
 
         const res = await deleteUserRole(userId)
         if (res.success) {
-            setMessage('Akses pengguna berjaya dipadam')
+            toast.success('Akses pengguna berjaya dipadam')
             loadUsers()
         } else {
-            setMessage(`Error: ${res.error}`)
+            toast.error(res.error || 'Gagal padam akses')
         }
     }
 
-    if (loading) return <div className="p-8">Loading...</div>
+    if (loading) return (
+        <div className="space-y-8 animate-pulse">
+            <div className="flex justify-between items-center">
+                <div>
+                    <div className="h-8 bg-gray-200 rounded w-48" />
+                    <div className="h-4 bg-gray-100 rounded w-40 mt-2" />
+                </div>
+                <div className="h-10 bg-gray-200 rounded w-32" />
+            </div>
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="h-6 bg-gray-200 rounded w-32 mb-4" />
+                <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="flex items-center gap-4 py-3">
+                            <div className="h-4 bg-gray-100 rounded w-48" />
+                            <div className="h-6 bg-gray-100 rounded w-16" />
+                            <div className="h-8 bg-gray-100 rounded w-8" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
 
     return (
         <div className="space-y-8">

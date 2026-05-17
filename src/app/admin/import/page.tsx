@@ -4,8 +4,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { createClient } from '@/lib/supabase/client'
+import { importParticipants } from './actions'
+import { toast } from 'sonner'
 
 export default function ImportPage() {
     const [file, setFile] = useState<File | null>(null)
@@ -261,14 +261,14 @@ export default function ImportPage() {
 
             setStatus(`Found ${rows.length} records. Uploading...`)
 
-            // Batch Insert
-            const supabase = createClient()
-            const { error } = await supabase.from('participants').insert(rows)
+            const result = await importParticipants(rows)
 
-            if (error) {
-                setStatus(`Error: ${error.message}`)
+            if (!result.success) {
+                setStatus(`Error: ${result.error}`)
+                toast.error(result.error || 'Import gagal')
             } else {
-                setStatus(`Success! Imported ${rows.length} participants.`)
+                setStatus(`Success! Imported ${result.count} participants.`)
+                toast.success(`${result.count} peserta berjaya diimport`)
             }
             setLoading(false)
         }
@@ -297,10 +297,9 @@ export default function ImportPage() {
                 </div>
 
                 {status && (
-                    <Alert className="mt-4">
-                        <AlertTitle>Status</AlertTitle>
-                        <AlertDescription>{status}</AlertDescription>
-                    </Alert>
+                    <div className={`mt-4 rounded-lg border p-4 text-sm ${status.startsWith('Error') ? 'border-red-200 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50 text-gray-700'}`}>
+                        {status}
+                    </div>
                 )}
             </div>
         </div>

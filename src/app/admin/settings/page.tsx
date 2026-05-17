@@ -74,8 +74,14 @@ export default function SettingsPage() {
             return
         }
 
-        if (newPassword.length < 6) {
-            setPasswordError('Password must be at least 6 characters')
+        if (newPassword.length < 8) {
+            setPasswordError('Password mesti sekurang-kurangnya 8 aksara')
+            setPasswordLoading(false)
+            return
+        }
+
+        if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+            setPasswordError('Password mesti mengandungi huruf besar, huruf kecil, dan nombor')
             setPasswordLoading(false)
             return
         }
@@ -118,7 +124,23 @@ export default function SettingsPage() {
     }
 
     if (loading) {
-        return <div className="p-8">Loading...</div>
+        return (
+            <div className="space-y-8 animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-32" />
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="h-6 bg-gray-200 rounded w-40 mb-6" />
+                    <div className="space-y-4 max-w-md">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="space-y-2">
+                                <div className="h-4 bg-gray-100 rounded w-28" />
+                                <div className="h-10 bg-gray-100 rounded" />
+                            </div>
+                        ))}
+                        <div className="h-10 bg-gray-200 rounded w-40" />
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (

@@ -2,6 +2,13 @@
 -- FIX RLS POLICIES — Run this in Supabase SQL Editor
 -- =============================================
 
+-- Step 0: Enable RLS on ALL tables (required even if policies exist)
+ALTER TABLE participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE checkins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE seminar_stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+
 -- Step 1: Drop existing overly permissive policies on participants
 DROP POLICY IF EXISTS "Enable read access for all users" ON participants;
 DROP POLICY IF EXISTS "Enable insert for all users" ON participants;
@@ -55,5 +62,31 @@ CREATE POLICY "auth_update_checkins"
 -- Only authenticated users can DELETE
 CREATE POLICY "auth_delete_checkins"
   ON checkins FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- Step 5: Create policies for admins table
+DROP POLICY IF EXISTS "auth_read_admins" ON admins;
+DROP POLICY IF EXISTS "auth_insert_admins" ON admins;
+DROP POLICY IF EXISTS "auth_update_admins" ON admins;
+DROP POLICY IF EXISTS "auth_delete_admins" ON admins;
+
+CREATE POLICY "auth_read_admins"
+  ON admins FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY "auth_insert_admins"
+  ON admins FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "auth_update_admins"
+  ON admins FOR UPDATE
+  TO authenticated
+  USING (true);
+
+CREATE POLICY "auth_delete_admins"
+  ON admins FOR DELETE
   TO authenticated
   USING (true);

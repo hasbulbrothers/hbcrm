@@ -1,10 +1,15 @@
 'use server'
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rate-limit'
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function searchParticipant(query: string, eventCode: string, day?: number) {
+    if (!rateLimit(`search:${eventCode}`, 30, 60000)) {
+        return { error: 'Terlalu banyak carian. Sila tunggu sebentar.' }
+    }
+
     const supabase = await createClient()
 
     const safe = query.replace(/[,()%"*\\';.]/g, '').trim()
@@ -36,6 +41,10 @@ export async function searchParticipant(query: string, eventCode: string, day?: 
 }
 
 export async function submitCheckIn(participantId: string, ignoredEventCode: string, day: number, attendCount: number) {
+    if (!rateLimit(`checkin:${participantId}`, 5, 60000)) {
+        return { error: 'Terlalu banyak percubaan. Sila tunggu sebentar.' }
+    }
+
     if (!UUID_REGEX.test(participantId)) {
         return { error: 'ID peserta tidak sah' }
     }
@@ -79,6 +88,10 @@ export async function submitCheckIn(participantId: string, ignoredEventCode: str
 }
 
 export async function updateCheckIn(participantId: string, day: number, attendCount: number) {
+    if (!rateLimit(`update:${participantId}`, 5, 60000)) {
+        return { error: 'Terlalu banyak percubaan. Sila tunggu sebentar.' }
+    }
+
     if (!UUID_REGEX.test(participantId)) {
         return { error: 'ID peserta tidak sah' }
     }

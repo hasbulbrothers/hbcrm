@@ -78,11 +78,14 @@ create policy "anon_insert_checkins" on checkins for insert with check (true);
 create policy "auth_update_checkins" on checkins for update to authenticated using (true);
 create policy "auth_delete_checkins" on checkins for delete to authenticated using (true);
 
--- Policy: User roles - authenticated users can read
+-- Policy: User roles - authenticated can read, only admins can manage
 create policy "Enable read for authenticated" on user_roles for select to authenticated using (true);
-create policy "Enable insert for authenticated" on user_roles for insert to authenticated with check (true);
-create policy "Enable update for authenticated" on user_roles for update to authenticated using (true);
-create policy "Enable delete for authenticated" on user_roles for delete to authenticated using (true);
+create policy "admin_insert_user_roles" on user_roles for insert to authenticated
+  with check (exists (select 1 from user_roles where user_id = auth.uid() and role = 'admin'));
+create policy "admin_update_user_roles" on user_roles for update to authenticated
+  using (exists (select 1 from user_roles where user_id = auth.uid() and role = 'admin'));
+create policy "admin_delete_user_roles" on user_roles for delete to authenticated
+  using (exists (select 1 from user_roles where user_id = auth.uid() and role = 'admin'));
 
 -- Policy: Seminar stats - authenticated users can manage
 create policy "Enable read for all" on seminar_stats for select using (true);
