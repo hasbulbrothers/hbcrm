@@ -24,7 +24,6 @@ function RegisterContent() {
         name: '',
         phone: '',
         email: '',
-        niche: '',
         state: '',
         ticket_type: '',
     })
@@ -69,7 +68,7 @@ function RegisterContent() {
                 <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white">
                     <CardContent className="p-8 text-center space-y-4">
                         <div className="flex justify-center mb-4">
-                            <Image src="/logo.png" alt="Logo" width={150} height={80} className="object-contain" />
+                            <Image src="/logo-gyb.png" alt="Logo" width={150} height={80} className="object-contain" />
                         </div>
                         <div className="text-green-400 text-5xl">✓</div>
                         <h2 className="text-2xl font-bold text-white">Pendaftaran Berjaya!</h2>
@@ -86,7 +85,7 @@ function RegisterContent() {
             <Card className="w-full max-w-md bg-zinc-900 border-zinc-800 text-white">
                 <CardHeader>
                     <div className="flex justify-center mb-4">
-                        <Image src="/logo.png" alt="Logo" width={150} height={80} className="object-contain" />
+                        <Image src="/logo-gyb.png" alt="Logo" width={150} height={80} className="object-contain" />
                     </div>
                     <CardTitle className="text-center text-white text-2xl">Pendaftaran</CardTitle>
                     <p className="text-center text-gray-400">{eventCode}</p>
@@ -143,17 +142,6 @@ function RegisterContent() {
                                 <option value="General">General — RM 2,700</option>
                                 <option value="VIP">VIP — RM 5,700</option>
                             </select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-300">Niche Bisnes</label>
-                            <Input
-                                name="niche"
-                                placeholder="Cth: F&B, E-commerce, Kecantikan"
-                                value={form.niche}
-                                onChange={handleChange}
-                                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-gray-500"
-                            />
                         </div>
 
                         <div className="space-y-2">

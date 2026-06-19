@@ -10,7 +10,7 @@ export default function Home() {
       <Card className="w-full max-w-md text-center bg-transparent border-none shadow-none md:bg-zinc-900 md:border-zinc-800">
         <CardHeader>
           <div className="flex justify-center mb-4">
-            <Image src="/logo.png" alt="9X Growth Logo" width={200} height={100} className="object-contain" />
+            <Image src="/logo-gyb.png" alt="Grow Your Business" width={200} height={100} className="object-contain" />
           </div>
           <CardTitle className="text-3xl text-white">9X Growth January 2026</CardTitle>
           <p className="text-gray-400">Sistem Check-In</p>

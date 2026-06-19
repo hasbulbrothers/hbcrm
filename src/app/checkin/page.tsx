@@ -79,7 +79,7 @@ function CheckInContent() {
             <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-zinc-800">
                 <div className="max-w-md mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
-                        <Image src="/logo.png" alt="Logo" width={100} height={50} className="object-contain" />
+                        <Image src="/logo-gyb.png" alt="Logo" width={100} height={50} className="object-contain" />
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-zinc-500 uppercase tracking-wider">Hari {day}</span>
                             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -92,7 +92,7 @@ function CheckInContent() {
                 {/* Search */}
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-white mb-1">Check-In Peserta</h1>
-                    <p className="text-zinc-500 text-sm mb-4">Cari nama atau no telefon pembeli tiket</p>
+                    <p className="text-zinc-500 text-sm mb-4">Cari nama, no telefon atau email pembeli tiket</p>
 
                     <div className="relative">
                         <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -100,7 +100,7 @@ function CheckInContent() {
                         </svg>
                         <input
                             type="text"
-                            placeholder="Masukkan nama atau no telefon..."
+                            placeholder="Masukkan nama, no telefon atau email..."
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             className="w-full h-12 pl-11 pr-4 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder:text-zinc-600 focus:outline-none focus:border-green-600 focus:ring-1 focus:ring-green-600 transition-all text-base"
@@ -113,8 +113,12 @@ function CheckInContent() {
                         )}
                     </div>
 
+                    <p className="text-sm text-green-400 mt-3 font-medium flex items-center gap-1.5">
+                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        Lebih mudah &amp; cepat — masukkan no telefon anda
+                    </p>
                     <p className="text-xs text-yellow-500/80 mt-2">
-                        *Guna nama atau no telefon dari resit/invois pembelian tiket
+                        *Guna nama, no telefon atau email dari resit/invois pembelian tiket
                     </p>
                 </div>
 
@@ -213,7 +217,7 @@ function CheckInContent() {
                             </svg>
                         </div>
                         <p className="text-zinc-400 font-medium">Tiada peserta dijumpai</p>
-                        <p className="text-zinc-600 text-sm mt-1">Cuba semak nama atau no telefon dari resit</p>
+                        <p className="text-zinc-600 text-sm mt-1">Cuba semak nama, no telefon atau email dari resit</p>
                     </div>
                 )}
 

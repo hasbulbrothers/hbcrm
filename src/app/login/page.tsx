@@ -32,7 +32,7 @@ export default function LoginPage() {
                 <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full -mr-48 -mt-48" />
                 <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-600/5 rounded-full -ml-36 -mb-36" />
                 <div className="relative z-10 text-center max-w-md">
-                    <Image src="/logo.png" alt="Logo" width={80} height={80} className="mx-auto mb-8 rounded-xl" />
+                    <Image src="/logo-gyb.png" alt="Logo" width={80} height={80} className="mx-auto mb-8 rounded-xl" />
                     <h1 className="text-3xl font-bold text-white mb-3">HB CRM</h1>
                     <p className="text-gray-400 text-base leading-relaxed">
                         Sistem pengurusan peserta dan check-in untuk seminar Hasbul Brothers
@@ -45,7 +45,7 @@ export default function LoginPage() {
                 <div className="w-full max-w-sm">
                     {/* Mobile logo */}
                     <div className="lg:hidden text-center mb-8">
-                        <Image src="/logo.png" alt="Logo" width={56} height={56} className="mx-auto mb-4 rounded-xl" />
+                        <Image src="/logo-gyb.png" alt="Logo" width={56} height={56} className="mx-auto mb-4 rounded-xl" />
                         <h1 className="text-xl font-bold text-gray-900">HB CRM</h1>
                     </div>
 

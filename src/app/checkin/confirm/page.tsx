@@ -32,9 +32,7 @@ function ConfirmContent() {
 
     const [participant, setParticipant] = useState<Participant | null>(null)
     const [loading, setLoading] = useState(true)
-    const [attendCount, setAttendCount] = useState(1)
-    const [generalCount, setGeneralCount] = useState(1)
-    const [vipCount, setVipCount] = useState(0)
+    const [count, setCount] = useState(1)
     const [submitting, setSubmitting] = useState(false)
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState('')
@@ -55,8 +53,7 @@ function ConfirmContent() {
                 const existingCheckin = p.checkins?.find(c => c.day === day)
                 if (existingCheckin) {
                     setIsUpdateMode(true)
-                    setAttendCount(existingCheckin.attend_count)
-                    setGeneralCount(existingCheckin.attend_count)
+                    setCount(existingCheckin.attend_count)
                 }
             } else {
                 setError(res.error || 'Peserta tidak dijumpai.')
@@ -79,7 +76,7 @@ function ConfirmContent() {
     }, [success])
 
     const isSponsor = participant?.ticket_type?.toLowerCase().includes('sponsor')
-    const totalAttendance = isSponsor ? attendCount : (generalCount + vipCount)
+    const totalAttendance = count
 
     const handleSubmit = async () => {
         if (totalAttendance === 0) {
@@ -242,67 +239,24 @@ function ConfirmContent() {
                     </div>
                 </div>
 
-                {/* Attendance Counter — no toggle needed */}
+                {/* Attendance Counter — satu kaunter mudah, default 1 */}
                 <div className="mb-6">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Bilangan Kehadiran</p>
-
-                    {isSponsor ? (
-                        <div className="grid grid-cols-5 gap-2">
-                            {[1, 2, 3, 4, 5].map(num => (
-                                <button
-                                    key={num}
-                                    onClick={() => setAttendCount(num)}
-                                    className={`h-14 rounded-xl text-lg font-semibold transition-all ${attendCount === num
-                                        ? 'bg-yellow-600 text-white scale-105 shadow-lg shadow-yellow-600/20'
-                                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
-                                    }`}
-                                >
-                                    {num}
-                                </button>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div>
-                                <p className="text-sm text-zinc-400 mb-2">Tiket General</p>
-                                <div className="grid grid-cols-6 gap-2">
-                                    {[0, 1, 2, 3, 4, 5].map(num => (
-                                        <button
-                                            key={num}
-                                            onClick={() => setGeneralCount(num)}
-                                            className={`h-12 rounded-xl text-base font-semibold transition-all ${generalCount === num
-                                                ? 'bg-blue-600 text-white scale-105 shadow-lg shadow-blue-600/20'
-                                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
-                                            }`}
-                                        >
-                                            {num}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-sm text-zinc-400 mb-2">Tiket VIP</p>
-                                <div className="grid grid-cols-6 gap-2">
-                                    {[0, 1, 2, 3, 4, 5].map(num => (
-                                        <button
-                                            key={num}
-                                            onClick={() => setVipCount(num)}
-                                            className={`h-12 rounded-xl text-base font-semibold transition-all ${vipCount === num
-                                                ? 'bg-purple-600 text-white scale-105 shadow-lg shadow-purple-600/20'
-                                                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
-                                            }`}
-                                        >
-                                            {num}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-zinc-800">
-                                <span className="text-zinc-500 text-sm">Jumlah kehadiran</span>
-                                <span className="text-white text-xl font-bold">{generalCount + vipCount}</span>
-                            </div>
-                        </div>
-                    )}
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Berapa orang hadir?</p>
+                    <div className="grid grid-cols-5 gap-2">
+                        {[1, 2, 3, 4, 5].map(num => (
+                            <button
+                                key={num}
+                                onClick={() => setCount(num)}
+                                className={`h-14 rounded-xl text-lg font-semibold transition-all ${count === num
+                                    ? 'bg-green-600 text-white scale-105 shadow-lg shadow-green-600/20'
+                                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                }`}
+                            >
+                                {num}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-zinc-600 mt-2">Default 1 — tekan nombor lain kalau bawa lebih ramai.</p>
                 </div>
 
                 {/* Error */}

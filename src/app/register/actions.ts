@@ -9,7 +9,7 @@ interface RegisterInput {
     name: string
     phone: string
     email: string
-    niche: string
+    niche?: string
     state: string
     ticket_type: string
 }

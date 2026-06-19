@@ -12,12 +12,15 @@ export async function searchParticipant(query: string, eventCode: string, day?: 
 
     const supabase = await createClient()
 
-    const safe = query.replace(/[,()%"*\\';.]/g, '').trim()
+    // Keep '.' and '@' so emails stay searchable; still strip ILIKE injection chars.
+    const safe = query.replace(/[,()%"*\\';]/g, '').trim()
     if (!safe || !eventCode) {
         return { data: [] }
     }
 
-    const isPhone = /^\d+$/.test(safe.replace(/\D/g, ''))
+    // Route to one column: phone (digits only), email (has '@'), otherwise name.
+    const isPhone = /^[\d\s()+-]+$/.test(query.trim()) && /\d/.test(query)
+    const isEmail = safe.includes('@')
 
     let dbQuery = supabase
         .from('participants')
@@ -25,8 +28,9 @@ export async function searchParticipant(query: string, eventCode: string, day?: 
         .ilike('event_code', eventCode)
 
     if (isPhone) {
-        const cleanPhone = safe.replace(/\D/g, '')
-        dbQuery = dbQuery.ilike('phone', `%${cleanPhone}%`)
+        dbQuery = dbQuery.ilike('phone', `%${safe.replace(/\D/g, '')}%`)
+    } else if (isEmail) {
+        dbQuery = dbQuery.ilike('email', `%${safe}%`)
     } else {
         dbQuery = dbQuery.ilike('name', `%${safe}%`)
     }
