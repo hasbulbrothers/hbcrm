@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth'
 
 export async function getParticipants(
     page: number = 1,
@@ -13,7 +13,10 @@ export async function getParticipants(
     closeBy: string = '',
     state: string = ''
 ) {
-    const supabase = await createClient()
+    const { error: authError, supabase } = await requireAdmin()
+    if (authError || !supabase) {
+        return { data: [], count: 0, error: 'Unauthorized' }
+    }
 
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
@@ -61,16 +64,17 @@ export async function getParticipants(
     const { data, count, error } = await dbQuery
 
     if (error) {
-        console.error('Error fetching participants:', error)
-        return { data: [], count: 0, error: error.message }
+        return { data: [], count: 0, error: 'Failed to fetch participants' }
     }
 
     return { data, count, error: null }
 }
 
-// Get unique values for filter dropdowns
 export async function getFilterOptions() {
-    const supabase = await createClient()
+    const { error: authError, supabase } = await requireAdmin()
+    if (authError || !supabase) {
+        return { niches: [], closeByOptions: [], states: [] }
+    }
 
     // Fetch unique niches
     const { data: nicheData } = await supabase

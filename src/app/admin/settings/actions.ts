@@ -30,7 +30,7 @@ export async function getUsers() {
         .order('created_at', { ascending: false })
 
     if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: 'Failed to fetch users' }
     }
 
     return { success: true, users }
@@ -63,22 +63,41 @@ export async function updateUserRole(targetUserId: string, newRole: 'admin' | 's
         .eq('user_id', targetUserId)
 
     if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: 'Failed to update role' }
     }
 
     return { success: true }
 }
 
-// Send password reset email
+const resetAttempts = new Map<string, { count: number; resetAt: number }>()
+const RESET_MAX_ATTEMPTS = 3
+const RESET_WINDOW_MS = 30 * 60 * 1000
+
 export async function sendPasswordResetEmail(email: string) {
     const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { success: false, error: 'Unauthorized' }
+    }
+
+    const now = Date.now()
+    const entry = resetAttempts.get(email)
+    if (entry && now < entry.resetAt && entry.count >= RESET_MAX_ATTEMPTS) {
+        return { success: false, error: 'Terlalu banyak percubaan. Sila cuba lagi kemudian.' }
+    }
+    if (!entry || now > (entry?.resetAt ?? 0)) {
+        resetAttempts.set(email, { count: 1, resetAt: now + RESET_WINDOW_MS })
+    } else {
+        entry.count++
+    }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/admin/settings/reset-password`,
     })
 
     if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: 'Failed to send reset email' }
     }
 
     return { success: true }
@@ -110,7 +129,7 @@ export async function updatePassword(oldPassword: string, newPassword: string) {
     })
 
     if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: 'Failed to update password' }
     }
 
     return { success: true }
@@ -142,7 +161,7 @@ export async function inviteUser(email: string, role: 'admin' | 'staff') {
     })
 
     if (inviteError) {
-        return { success: false, error: inviteError.message }
+        return { success: false, error: 'Failed to send invitation' }
     }
 
     // Pre-create user_roles entry (will be linked when user confirms)
@@ -152,8 +171,7 @@ export async function inviteUser(email: string, role: 'admin' | 'staff') {
         .insert({ email, role })
 
     if (roleError) {
-        // It's okay if this fails, the main invite was sent
-        console.error('Failed to create pending invite:', roleError)
+        // pending invite creation failed silently — main invite was sent
     }
 
     return { success: true, message: 'Jemputan telah dihantar ke email' }

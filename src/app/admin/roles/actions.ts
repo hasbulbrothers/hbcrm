@@ -29,7 +29,7 @@ export async function getAllUsers() {
         .order('created_at', { ascending: false })
 
     if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: 'Operation failed' }
     }
 
     return { success: true, users, currentUserId: user.id }
@@ -67,7 +67,7 @@ export async function changeUserRole(targetUserId: string, newRole: 'admin' | 'g
         .eq('user_id', targetUserId)
 
     if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: 'Operation failed' }
     }
 
     return { success: true }
@@ -119,7 +119,7 @@ export async function addUserWithRole(email: string, role: 'admin' | 'general') 
         .insert({ email, role })
 
     if (roleError) {
-        console.error('Failed to create pending invite:', roleError)
+        // pending invite creation failed silently — main invite was sent
     }
 
     return { success: true, message: 'Jemputan telah dihantar ke email' }
@@ -157,7 +157,7 @@ export async function deleteUserRole(targetUserId: string) {
         .eq('user_id', targetUserId)
 
     if (error) {
-        return { success: false, error: error.message }
+        return { success: false, error: 'Operation failed' }
     }
 
     return { success: true }

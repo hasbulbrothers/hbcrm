@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { requireAdmin } from '@/lib/auth'
 
 export async function exportParticipants(
     query: string = '',
@@ -11,12 +11,16 @@ export async function exportParticipants(
     closeBy: string = '',
     state: string = ''
 ) {
-    const supabase = await createClient()
+    const { error: authError, supabase } = await requireAdmin()
+    if (authError || !supabase) {
+        return { data: [], error: 'Unauthorized' }
+    }
 
     let dbQuery = supabase
         .from('participants')
         .select('*, checkins(day, attend_count)')
         .order('created_at', { ascending: false })
+        .limit(10000)
 
     if (query) {
         const safe = query.replace(/[,()%"*\\]/g, '').trim()
@@ -54,8 +58,7 @@ export async function exportParticipants(
     const { data, error } = await dbQuery
 
     if (error) {
-        console.error('Error exporting participants:', error)
-        return { data: [], error: error.message }
+        return { data: [], error: 'Failed to export participants' }
     }
 
     return { data, error: null }
