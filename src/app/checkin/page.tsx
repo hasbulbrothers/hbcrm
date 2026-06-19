@@ -33,7 +33,7 @@ function CheckInContent() {
     const [searched, setSearched] = useState(false)
 
     const handleSearch = useCallback(async (searchQuery: string) => {
-        if (!searchQuery || searchQuery.length < 3) return
+        if (!searchQuery || searchQuery.length < 5) return
 
         setLoading(true)
         setError('')
@@ -55,7 +55,7 @@ function CheckInContent() {
     }, [eventCode])
 
     useEffect(() => {
-        if (query.length < 3) {
+        if (query.length < 5) {
             if (participants.length > 0) {
                 setParticipants([])
                 setSearched(false)

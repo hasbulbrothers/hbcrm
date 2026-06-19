@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { getParticipantById } from './actions'
 import { submitCheckIn, updateCheckIn } from '../../actions'
 
@@ -32,7 +31,9 @@ function ConfirmContent() {
 
     const [participant, setParticipant] = useState<Participant | null>(null)
     const [loading, setLoading] = useState(true)
-    const [count, setCount] = useState(1)
+    const [generalCount, setGeneralCount] = useState(0)
+    const [vipCount, setVipCount] = useState(0)
+    const [sponsorCount, setSponsorCount] = useState(1)
     const [submitting, setSubmitting] = useState(false)
     const [success, setSuccess] = useState(false)
     const [error, setError] = useState('')
@@ -50,10 +51,25 @@ function ConfirmContent() {
                 const p = res.data as Participant
                 setParticipant(p)
 
+                // Detect which ticket types this participant bought
+                const tt = (p.ticket_type || '').toLowerCase()
+                const hasSponsor = tt.includes('sponsor')
+                const hasGeneral = tt.includes('general')
+                const hasVip = tt.includes('vip')
+                const showGeneral = hasGeneral || (!hasSponsor && !hasVip) // fallback: unknown ticket = general
+
                 const existingCheckin = p.checkins?.find(c => c.day === day)
                 if (existingCheckin) {
                     setIsUpdateMode(true)
-                    setCount(existingCheckin.attend_count)
+                    // Existing total goes into the primary counter for this ticket
+                    if (hasSponsor) setSponsorCount(existingCheckin.attend_count)
+                    else if (showGeneral) setGeneralCount(existingCheckin.attend_count)
+                    else if (hasVip) setVipCount(existingCheckin.attend_count)
+                } else {
+                    // Sensible default of 1 on the relevant counter
+                    if (hasSponsor) setSponsorCount(1)
+                    else if (showGeneral) setGeneralCount(1)
+                    else if (hasVip) setVipCount(1)
                 }
             } else {
                 setError(res.error || 'Peserta tidak dijumpai.')
@@ -75,8 +91,15 @@ function ConfirmContent() {
         }
     }, [success])
 
-    const isSponsor = participant?.ticket_type?.toLowerCase().includes('sponsor')
-    const totalAttendance = count
+    const ticketStr = (participant?.ticket_type || '').toLowerCase()
+    const hasSponsor = ticketStr.includes('sponsor')
+    const hasGeneral = ticketStr.includes('general')
+    const hasVip = ticketStr.includes('vip')
+    const showGeneral = hasGeneral || (!hasSponsor && !hasVip) // fallback: unknown ticket = general
+    const isSponsor = hasSponsor
+    const totalAttendance = isSponsor
+        ? sponsorCount
+        : (showGeneral ? generalCount : 0) + (hasVip ? vipCount : 0)
 
     const handleSubmit = async () => {
         if (totalAttendance === 0) {
@@ -151,6 +174,18 @@ function ConfirmContent() {
                                 <span className="text-zinc-500">Hari</span>
                                 <span className="text-zinc-300">Hari {day}</span>
                             </div>
+                            {!isSponsor && showGeneral && hasVip && (
+                                <>
+                                    <div className="flex justify-between">
+                                        <span className="text-zinc-500">General hadir</span>
+                                        <span className="text-zinc-300">{generalCount} orang</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-zinc-500">VIP hadir</span>
+                                        <span className="text-zinc-300">{vipCount} orang</span>
+                                    </div>
+                                </>
+                            )}
                             <div className="flex justify-between">
                                 <span className="text-zinc-500">Kehadiran</span>
                                 <span className="text-white font-semibold">{totalAttendance} orang</span>
@@ -161,7 +196,7 @@ function ConfirmContent() {
                     {isSponsor ? (
                         <div className={`rounded-xl bg-blue-950/30 border border-blue-800/30 p-4 mb-6 text-left transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
                             <p className="text-blue-300 text-sm font-medium">Tiket Sponsor</p>
-                            <p className="text-blue-300/70 text-sm mt-1">Tiada workbook dan bonus. Boleh terus naik ke level 20.</p>
+                            <p className="text-blue-300/70 text-sm mt-1">Tiada workbook dan bonus. Boleh terus masuk ke dewan.</p>
                         </div>
                     ) : (
                         <div className={`rounded-xl bg-yellow-950/30 border border-yellow-800/30 p-4 mb-6 text-left transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
@@ -218,45 +253,76 @@ function ConfirmContent() {
                                 ))}
                             </div>
                         </div>
-                        {participant?.email && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-zinc-500">Emel</span>
-                                <span className="text-zinc-300">{participant.email}</span>
-                            </div>
-                        )}
-                        {participant?.niche && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-zinc-500">Niche</span>
-                                <span className="text-zinc-300">{participant.niche}</span>
-                            </div>
-                        )}
-                        {participant?.state && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-zinc-500">Negeri</span>
-                                <span className="text-zinc-300">{participant.state}</span>
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {/* Attendance Counter — satu kaunter mudah, default 1 */}
+                {/* Attendance Counter — ikut jenis tiket peserta */}
                 <div className="mb-6">
                     <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Berapa orang hadir?</p>
-                    <div className="grid grid-cols-5 gap-2">
-                        {[1, 2, 3, 4, 5].map(num => (
-                            <button
-                                key={num}
-                                onClick={() => setCount(num)}
-                                className={`h-14 rounded-xl text-lg font-semibold transition-all ${count === num
-                                    ? 'bg-green-600 text-white scale-105 shadow-lg shadow-green-600/20'
-                                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
-                                }`}
-                            >
-                                {num}
-                            </button>
-                        ))}
-                    </div>
-                    <p className="text-xs text-zinc-600 mt-2">Default 1 — tekan nombor lain kalau bawa lebih ramai.</p>
+
+                    {isSponsor ? (
+                        <div className="grid grid-cols-5 gap-2">
+                            {[1, 2, 3, 4, 5].map(num => (
+                                <button
+                                    key={num}
+                                    onClick={() => setSponsorCount(num)}
+                                    className={`h-14 rounded-xl text-lg font-semibold transition-all ${sponsorCount === num
+                                        ? 'bg-yellow-600 text-white scale-105 shadow-lg shadow-yellow-600/20'
+                                        : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                    }`}
+                                >
+                                    {num}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {showGeneral && (
+                                <div>
+                                    <p className="text-sm text-zinc-400 mb-2">Tiket General</p>
+                                    <div className="grid grid-cols-6 gap-2">
+                                        {[0, 1, 2, 3, 4, 5].map(num => (
+                                            <button
+                                                key={num}
+                                                onClick={() => setGeneralCount(num)}
+                                                className={`h-12 rounded-xl text-base font-semibold transition-all ${generalCount === num
+                                                    ? 'bg-blue-600 text-white scale-105 shadow-lg shadow-blue-600/20'
+                                                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                                }`}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {hasVip && (
+                                <div>
+                                    <p className="text-sm text-zinc-400 mb-2">Tiket VIP</p>
+                                    <div className="grid grid-cols-6 gap-2">
+                                        {[0, 1, 2, 3, 4, 5].map(num => (
+                                            <button
+                                                key={num}
+                                                onClick={() => setVipCount(num)}
+                                                className={`h-12 rounded-xl text-base font-semibold transition-all ${vipCount === num
+                                                    ? 'bg-purple-600 text-white scale-105 shadow-lg shadow-purple-600/20'
+                                                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                                }`}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {showGeneral && hasVip && (
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+                                    <span className="text-zinc-500 text-sm">Jumlah kehadiran</span>
+                                    <span className="text-white text-xl font-bold">{generalCount + vipCount}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Error */}
