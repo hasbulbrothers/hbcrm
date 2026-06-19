@@ -166,9 +166,13 @@ function ConfirmContent() {
                     <div className={`rounded-xl ${isSponsor ? 'bg-zinc-900 border border-zinc-800' : 'bg-green-950/40 border border-green-800/40'} p-5 text-left mb-6 transition-all duration-500 delay-400 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
                         <p className="font-semibold text-white text-lg">{participant?.name}</p>
                         <div className="mt-3 space-y-1.5 text-sm">
-                            <div className="flex justify-between">
+                            <div className="flex flex-col gap-1.5">
                                 <span className="text-zinc-500">Tiket</span>
-                                <span className="text-zinc-300">{participant?.ticket_type || 'General'}</span>
+                                <div className="text-zinc-300">
+                                    {(participant?.ticket_type || 'General').split(/(?=\d+\.\s)/).filter(Boolean).map((item, idx) => (
+                                        <p key={idx} className="leading-snug">{item.trim()}</p>
+                                    ))}
+                                </div>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-zinc-500">Hari</span>
