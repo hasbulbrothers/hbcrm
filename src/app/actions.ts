@@ -6,9 +6,9 @@ import { rateLimit } from '@/lib/rate-limit'
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function searchParticipant(query: string, eventCode: string, day?: number) {
-    if (!rateLimit(`search:${eventCode}`, 30, 60000)) {
-        return { error: 'Terlalu banyak carian. Sila tunggu sebentar.' }
-    }
+    // No rate limit here: search is a public read and this runs at live events
+    // with many concurrent self-check-in users. A shared per-event limit blocked
+    // everyone once exhausted. Writes (check-in) stay rate-limited below.
 
     const supabase = await createClient()
 
