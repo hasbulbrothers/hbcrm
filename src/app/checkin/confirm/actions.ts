@@ -12,7 +12,7 @@ export async function getParticipantById(id: string) {
     const supabase = await createClient()
     const { data, error } = await supabase
         .from('participants')
-        .select('id, name, phone, email, ticket_type, niche, state, checkins(day, attend_count, status)')
+        .select('id, name, phone, email, ticket_type, niche, state, total_sales, checkins(day, attend_count, status)')
         .eq('id', id)
         .single()
 
