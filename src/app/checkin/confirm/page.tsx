@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { getParticipantById, submitBoardroomForm } from './actions'
+import { getParticipantById } from './actions'
 import { submitCheckIn, updateCheckIn } from '../../actions'
 
 interface CheckIn {
@@ -23,45 +23,46 @@ interface Participant {
     checkins?: CheckIn[]
 }
 
-// WhatsApp groups for the Day 2 afternoon sessions.
-const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/BnSVzkrAdABBjH8XfQbI0M?s=cl&p=a&mlu=3&amv=2' // Hall 1 (below 70K / baru bermula)
-const WHATSAPP_BOARDROOM_URL = 'https://chat.whatsapp.com/KeqRqTHUdSl4dDl9airuAV?s=cl&p=a&mlu=3&amv=2' // Hall 2 (70K and above)
+// Day 2 afternoon split. Hall 2 (Boardroom) is for monthly sales ABOVE RM80,000 —
+// i.e. the "RM80,000 - RM200,000", "RM200,000 - RM500,000" and "RM500,000 keatas"
+// bands. Everyone else, including "RM30,000 - RM80,000", goes to Hall 1.
+const HALL_2_THRESHOLD = 80_000
 
-// Afternoon "Sales Growth Breakthrough" segment: monthly sales below 70K,
-// OR participants who are just starting out (no/low sales yet).
-// Reads the free-text total_sales field.
-function inAfternoonSegment(totalSales?: string | number | null): boolean {
-    if (totalSales === null || totalSales === undefined) return false
-    const s = String(totalSales).toLowerCase()
-    // Just-starting-out labels.
-    if (/baru\s*(ber)?mula|belum\s*(ber)?mula|baru\s*nak|newbie|start(\s*up|er|ing)?|tiada\s*(jualan|sales)|no\s*sales/.test(s)) return true
-    // Below 70K labels.
-    if (/(bawah|kurang|below|under|<)\s*rm?\s*70\s*k/.test(s) || /70\s*k\s*(ke\s*)?bawah/.test(s)) return true
-    // Highest figure mentioned, in thousands (K). "70k-100k" -> 100, "20k" -> 20.
-    const kFigures = [...s.matchAll(/(\d+(?:\.\d+)?)\s*k/g)].map(m => parseFloat(m[1]))
-    if (kFigures.length > 0) return Math.max(...kFigures) <= 70
+// Highest ringgit figure mentioned in the free-text band.
+// "RM80,000 - RM200,000" -> 200000, "70k" -> 70000. Null when no figure is present.
+function highestFigure(s: string): number | null {
+    const kFigures = [...s.matchAll(/(\d+(?:\.\d+)?)\s*k/g)].map(m => parseFloat(m[1]) * 1000)
+    if (kFigures.length > 0) return Math.max(...kFigures)
     const rawNumbers = [...s.matchAll(/(\d{3,})/g)].map(m => parseFloat(m[1]))
-    if (rawNumbers.length > 0) return Math.max(...rawNumbers) <= 70000
-    return false
+    if (rawNumbers.length > 0) return Math.max(...rawNumbers)
+    return null
 }
 
-// Afternoon "Business Scaling & Expansion Boardroom" segment: 70K and above
-// ("70K-100K", "100K keatas", etc.). Mutually exclusive with the below-70K segment.
+// Afternoon "Business Scaling & Expansion Boardroom" segment: above RM80,000.
+// A band whose top end is exactly 80K ("RM30,000 - RM80,000") stays in Hall 1.
 function inBoardroomSegment(totalSales?: string | number | null): boolean {
     if (totalSales === null || totalSales === undefined) return false
-    const s = String(totalSales).toLowerCase()
+    const s = String(totalSales).toLowerCase().replace(/,/g, '') // strip thousands separators (RM100,000)
+    // "Bawah RM100k" style labels are a ceiling, never a Boardroom figure.
+    if (/(bawah|kurang|below|under|<)/.test(s)) return false
     const hasAbove = /(ke\s*atas|keatas|above|melebihi|\+)/.test(s)
-    const kFigures = [...s.matchAll(/(\d+(?:\.\d+)?)\s*k/g)].map(m => parseFloat(m[1]))
-    if (kFigures.length > 0) {
-        const maxK = Math.max(...kFigures)
-        return maxK > 70 || (hasAbove && maxK >= 70)
-    }
-    const rawNumbers = [...s.matchAll(/(\d{3,})/g)].map(m => parseFloat(m[1]))
-    if (rawNumbers.length > 0) {
-        const maxN = Math.max(...rawNumbers)
-        return maxN > 70000 || (hasAbove && maxN >= 70000)
-    }
-    return false
+    const max = highestFigure(s)
+    if (max === null) return false
+    return max > HALL_2_THRESHOLD || (hasAbove && max >= HALL_2_THRESHOLD)
+}
+
+// A hall can only be assigned once total_sales is actually on record.
+// Blank means the participant has to declare it at the registration desk.
+function hasSalesBand(totalSales?: string | number | null): boolean {
+    return totalSales !== null && totalSales !== undefined && String(totalSales).trim() !== ''
+}
+
+// Afternoon "Sales Growth Breakthrough" segment: everyone with a recorded band who
+// is not in the Boardroom — RM80,000 and below, plus those just starting out.
+// Mutually exclusive with inBoardroomSegment by construction.
+function inAfternoonSegment(totalSales?: string | number | null): boolean {
+    if (!hasSalesBand(totalSales)) return false
+    return !inBoardroomSegment(totalSales)
 }
 
 function ConfirmContent() {
@@ -81,32 +82,6 @@ function ConfirmContent() {
     const [error, setError] = useState('')
     const [isUpdateMode, setIsUpdateMode] = useState(false)
     const [showCheck, setShowCheck] = useState(false)
-
-    // Boardroom (Hall 2) gated WhatsApp form
-    const [boardroomOpen, setBoardroomOpen] = useState(false)
-    const [boardroomDone, setBoardroomDone] = useState(false)
-    const [boardroomForm, setBoardroomForm] = useState({ brandName: '', staffCount: '', question: '' })
-    const [boardroomSubmitting, setBoardroomSubmitting] = useState(false)
-    const [boardroomError, setBoardroomError] = useState('')
-
-    const handleBoardroomSubmit = async () => {
-        setBoardroomSubmitting(true)
-        setBoardroomError('')
-        const res = await submitBoardroomForm({
-            participantId,
-            eventCode,
-            brandName: boardroomForm.brandName,
-            staffCount: boardroomForm.staffCount,
-            question: boardroomForm.question,
-        })
-        if (res.error) {
-            setBoardroomError(res.error)
-            setBoardroomSubmitting(false)
-        } else {
-            setBoardroomDone(true)
-            setBoardroomSubmitting(false)
-        }
-    }
 
     const fetchParticipant = useCallback(async () => {
         if (!participantId) {
@@ -253,6 +228,23 @@ function ConfirmContent() {
                         </div>
                     )}
 
+                    {day === 2 && !hasSalesBand(participant?.total_sales) && (
+                        <div className={`rounded-xl border-2 border-amber-500 bg-amber-950/40 p-4 text-left mb-6 shadow-lg shadow-amber-900/30 transition-all duration-500 delay-300 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+                            <div className="flex items-center gap-2">
+                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-black text-sm font-bold">!</span>
+                                <p className="text-xs text-amber-400 uppercase tracking-wider font-semibold">Tindakan Diperlukan</p>
+                            </div>
+                            <p className="text-white font-bold text-lg mt-2">Sila ke Meja Pendaftaran</p>
+                            <p className="text-amber-100/90 text-sm mt-2 leading-relaxed">
+                                Rujuk staf kami di meja pendaftaran untuk <span className="font-semibold text-white">claim tiket</span> anda
+                                dan maklumkan <span className="font-semibold text-white">purata sales bulanan</span> anda.
+                            </p>
+                            <p className="text-amber-200/70 text-xs mt-1.5">
+                                Maklumat ini diperlukan untuk kami tempatkan anda di sesi petang yang bersesuaian.
+                            </p>
+                        </div>
+                    )}
+
                     <div className={`rounded-xl ${isSponsor ? 'bg-zinc-900 border border-zinc-800' : 'bg-green-950/40 border border-green-800/40'} p-5 text-left mb-6 transition-all duration-500 delay-400 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
                         <p className="font-semibold text-white text-lg">{participant?.name}</p>
                         <div className="mt-3 space-y-1.5 text-sm">
@@ -293,153 +285,12 @@ function ConfirmContent() {
                         </div>
                     </div>
 
-                    {day === 2 && inAfternoonSegment(participant?.total_sales) && (
-                        <div className={`mb-6 transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-                            <div className="relative">
-                                {/* Pulsing red glow to grab attention */}
-                                <div className="absolute -inset-0.5 rounded-2xl bg-red-500/50 blur-md animate-pulse" aria-hidden="true" />
-                                <div className="relative rounded-2xl border-2 border-red-500 bg-red-950/60 p-4 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-sm font-bold animate-pulse">!</span>
-                                        <p className="text-red-200 text-sm font-bold uppercase tracking-wide">Penting</p>
-                                    </div>
-                                    <p className="text-white text-sm mt-2 font-medium">Sila sertai Group WhatsApp untuk memudahkan semua maklumat penting sepanjang program.</p>
-                                    <p className="text-red-200/80 text-xs mt-1.5">Jika anda beli lebih dari 1 tiket, minta partner / kawan anda join group sekali.</p>
-                                    <a
-                                        href={WHATSAPP_GROUP_URL}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-center gap-2 w-full h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-base active:scale-[0.98] transition-all shadow-lg shadow-green-600/30 mt-3"
-                                    >
-                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.738-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                                        Sertai Group WhatsApp
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {day === 2 && inBoardroomSegment(participant?.total_sales) && (
-                        <div className={`mb-6 transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
-                            <div className="relative">
-                                <div className="absolute -inset-0.5 rounded-2xl bg-red-500/50 blur-md animate-pulse" aria-hidden="true" />
-                                <div className="relative rounded-2xl border-2 border-red-500 bg-red-950/60 p-4 text-left">
-                                    <div className="flex items-center gap-2">
-                                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white text-sm font-bold animate-pulse">!</span>
-                                        <p className="text-red-200 text-sm font-bold uppercase tracking-wide">Penting</p>
-                                    </div>
-                                    <p className="text-white text-sm mt-2 font-medium">Sila sertai Group WhatsApp untuk memudahkan semua maklumat penting sepanjang program.</p>
-                                    <p className="text-red-200/80 text-xs mt-1.5">Jika anda beli lebih dari 1 tiket, minta partner / kawan anda join group sekali.</p>
-                                    {boardroomDone ? (
-                                        <a
-                                            href={WHATSAPP_BOARDROOM_URL}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 w-full h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-base active:scale-[0.98] transition-all shadow-lg shadow-green-600/30 mt-3"
-                                        >
-                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.738-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                                            Sertai Group WhatsApp
-                                        </a>
-                                    ) : (
-                                        <button
-                                            onClick={() => setBoardroomOpen(true)}
-                                            className="flex items-center justify-center gap-2 w-full h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-base active:scale-[0.98] transition-all shadow-lg shadow-green-600/30 mt-3"
-                                        >
-                                            Isi Borang &amp; Sertai Group WhatsApp
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     <button
                         onClick={() => router.push(`/checkin?day=${day}&event=${eventCode}`)}
                         className={`w-full h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-medium transition-all duration-500 delay-500 ${showCheck ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
                     >
                         Selesai
                     </button>
-
-                    {/* Boardroom form modal */}
-                    {boardroomOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" onClick={(e) => { if (e.target === e.currentTarget && !boardroomSubmitting) setBoardroomOpen(false) }}>
-                            <div className="w-full max-w-md rounded-2xl bg-zinc-900 border border-zinc-700 p-5 text-left max-h-[90vh] overflow-auto">
-                                {boardroomDone ? (
-                                    <div className="text-center py-4">
-                                        <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-green-600 flex items-center justify-center">
-                                            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                                        </div>
-                                        <h3 className="text-xl font-bold text-white">Terima kasih!</h3>
-                                        <p className="text-zinc-400 text-sm mt-1 mb-5">Maklumat anda telah dihantar. Sila sertai group WhatsApp sekarang.</p>
-                                        <a
-                                            href={WHATSAPP_BOARDROOM_URL}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            onClick={() => setBoardroomOpen(false)}
-                                            className="flex items-center justify-center gap-2 w-full h-14 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-base active:scale-[0.98] transition-all shadow-lg shadow-green-600/30"
-                                        >
-                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.738-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-                                            Sertai Group WhatsApp
-                                        </a>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <h3 className="text-lg font-bold text-white">Isi borang dibawah</h3>
-                                        <p className="text-zinc-400 text-sm mt-1 mb-4">Untuk memudahkan sesi sebelah petang.</p>
-                                        <div className="space-y-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-sm font-medium text-gray-300">Nama Brand</label>
-                                                <input
-                                                    value={boardroomForm.brandName}
-                                                    onChange={(e) => setBoardroomForm(p => ({ ...p, brandName: e.target.value }))}
-                                                    placeholder="Nama brand / bisnes anda"
-                                                    className="w-full h-11 px-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder:text-zinc-500 focus:outline-none focus:border-green-600 text-base"
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-sm font-medium text-gray-300">Jumlah Staf</label>
-                                                <input
-                                                    type="number"
-                                                    inputMode="numeric"
-                                                    value={boardroomForm.staffCount}
-                                                    onChange={(e) => setBoardroomForm(p => ({ ...p, staffCount: e.target.value }))}
-                                                    placeholder="Cth: 5"
-                                                    className="w-full h-11 px-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder:text-zinc-500 focus:outline-none focus:border-green-600 text-base"
-                                                />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-sm font-medium text-gray-300">Apa satu soalan yang anda nak tanya pada Hasbul Brothers?</label>
-                                                <textarea
-                                                    value={boardroomForm.question}
-                                                    onChange={(e) => setBoardroomForm(p => ({ ...p, question: e.target.value }))}
-                                                    rows={3}
-                                                    placeholder="Tulis soalan anda di sini"
-                                                    className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder:text-zinc-500 focus:outline-none focus:border-green-600 text-base resize-none"
-                                                />
-                                            </div>
-                                        </div>
-                                        {boardroomError && <p className="text-red-400 text-sm mt-3">{boardroomError}</p>}
-                                        <div className="flex gap-2 mt-5">
-                                            <button
-                                                onClick={() => setBoardroomOpen(false)}
-                                                disabled={boardroomSubmitting}
-                                                className="h-12 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-medium"
-                                            >
-                                                Batal
-                                            </button>
-                                            <button
-                                                onClick={handleBoardroomSubmit}
-                                                disabled={boardroomSubmitting}
-                                                className="flex-1 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold active:scale-[0.98] transition-all disabled:opacity-60"
-                                            >
-                                                {boardroomSubmitting ? 'Menghantar...' : 'Hantar'}
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         )
