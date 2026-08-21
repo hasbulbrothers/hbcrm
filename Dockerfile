@@ -1,11 +1,12 @@
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-# package-lock.json is written by npm 11 on the dev machines. npm 10 (bundled
-# with node:20-alpine) rejects the optional-dep tree it produces, failing with
-# "Missing: @emnapi/runtime from lock file". Match the writer's major version.
+# package-lock.json is written by npm 11 on the dev machines, and npm 10 rejects
+# the optional-dep tree it produces ("Missing: @emnapi/runtime from lock file").
+# node:24-alpine already ships npm 11, so this pin is belt-and-braces: it keeps
+# the resolver version fixed even if the base image's bundled npm moves.
 RUN npm i -g npm@11.6.2
 RUN npm ci --force
 
