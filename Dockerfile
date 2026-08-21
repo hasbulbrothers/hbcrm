@@ -3,6 +3,10 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+# package-lock.json is written by npm 11 on the dev machines. npm 10 (bundled
+# with node:20-alpine) rejects the optional-dep tree it produces, failing with
+# "Missing: @emnapi/runtime from lock file". Match the writer's major version.
+RUN npm i -g npm@11.6.2
 RUN npm ci --force
 
 FROM base AS builder
